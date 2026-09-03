@@ -6,6 +6,8 @@ A persistent, SSH-accessible dev box on the artr OKE cluster (oracle-cluster) fo
 ## What's inside
 
 - **pi coding agent** (global npm, pinned 0.84.x) — run `pi` inside tmux
+- **kubectl v1.36.1** with an in-cluster kubeconfig (`pi-admin` SA, cluster-admin) —
+  the box can inspect Argo apps, pods, and logs directly
 - **Ruby** via [mise](https://mise.jdx.dev) (4.0.5, matches `home`) — `mise` is `.ruby-version` aware
 - **tmux 3.7c** built from source (≥3.5 needed for `extended-keys-format csi-u`, see pi's tmux docs)
 - **sshd** (key-only, root, hardened) — the only entry point, port 22

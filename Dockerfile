@@ -9,6 +9,7 @@ ARG NODE_VERSION=24
 ARG RUBY_VERSION=4.0.5
 ARG PI_VERSION=0.84.4
 ARG TMUX_VERSION=3.7c
+ARG KUBECTL_VERSION=1.36.1
 
 # ---------------------------------------------------------------------------
 # Build stage: tmux 3.7c (bookworm ships 3.3a; pi needs >= 3.5 for csi-u keys)
@@ -84,6 +85,18 @@ COPY --from=build /root/.config/mise /opt/mise-root/config
 ENV MISE_DATA_DIR=/opt/mise \
     MISE_CONFIG_DIR=/opt/mise-root/config \
     PATH="/opt/mise-root/local/bin:/opt/mise/shims:${PATH}"
+
+# kubectl, pinned to the cluster server version (check: kubectl version -o json)
+# sha256 sidecar = https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/arm64/kubectl.sha256
+RUN cd /tmp && \
+    curl -fsSLO "https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/arm64/kubectl" && \
+    curl -fsSLO "https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/arm64/kubectl.sha256" && \
+    echo "$(cat kubectl.sha256)  kubectl" | sha256sum -c - && \
+    install -m 0755 kubectl /usr/local/bin/kubectl && \
+    rm -f kubectl kubectl.sha256
+
+# In-cluster kubeconfig (ServiceAccount-based, see docs)
+COPY container/kubeconfig.yaml /root/.kube/config
 
 # Container assets
 COPY container/sshd_config /etc/ssh/sshd_config.d/10-pi-cloud.conf
