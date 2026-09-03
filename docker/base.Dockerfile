@@ -63,6 +63,10 @@ RUN curl -fsSL https://mise.jdx.dev/install.sh | sh && \
 # ---------------------------------------------------------------------------
 FROM node:${NODE_VERSION}-bookworm-slim
 
+# ARGs declared before the first FROM are not visible inside this stage's RUN
+# commands — re-declare the ones used here (NEOVIM_VERSION in the nvim layer).
+ARG NEOVIM_VERSION
+
 # Runtime deps: git (pi tool), ripgrep (pi grep), sshd (entry point), sqlite3 +
 # libvips (home repo specs/assets), ruby runtime libs, jq (secret assembly), bash.
 # libstdc++6: runtime lib for the official neovim tarball installed below.
@@ -97,6 +101,7 @@ ENV MISE_DATA_DIR=/opt/mise \
 
 # neovim — official prebuilt arm64 build (bookworm's apt neovim is 0.7.2, far too
 # old for a modern editor). Pinned by NEOVIM_VERSION; tag URL is immutable.
+# NEOVIM_VERSION re-declared above (global ARGs are not visible in RUN).
 RUN curl -fsSL "https://github.com/neovim/neovim/releases/download/v${NEOVIM_VERSION}/nvim-linux-arm64.tar.gz" \
       -o /tmp/nvim.tar.gz && \
     tar -C /opt -xzf /tmp/nvim.tar.gz && \
