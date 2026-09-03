@@ -87,6 +87,7 @@ ENV MISE_DATA_DIR=/opt/mise \
 
 # Container assets
 COPY container/sshd_config /etc/ssh/sshd_config.d/10-pi-cloud.conf
+COPY container/profile.d/pi-cloud.sh /etc/profile.d/pi-cloud.sh
 COPY container/tmux.conf /root/.tmux.conf
 COPY container/entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY container/pi-agent/ /opt/pi-agent/

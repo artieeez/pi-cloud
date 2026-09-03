@@ -12,6 +12,9 @@ log() { echo "[entrypoint] $*"; }
 die() { log "FATAL: $*"; exit 1; }
 
 mkdir -p "${SSH_DIR}" "${PI_DIR}"
+# /root is the NFS PVC mount root (often 777); sshd StrictModes refuses key
+# auth when the home dir is group/world-writable.
+chmod 700 "${HOME_DIR}"
 chmod 700 "${SSH_DIR}"
 
 # ---------------------------------------------------------------------------
