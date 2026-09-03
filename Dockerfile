@@ -72,7 +72,10 @@ RUN apt-get update -qq && \
     ln -s libevent-2.1.so.7.0.1 /usr/lib/$(uname -m)-linux-gnu/libevent_core-2.1.so.7 && \
     ln -s libevent-2.1.so.7.0.1 /usr/lib/$(uname -m)-linux-gnu/libevent_extra-2.1.so.7 && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives && \
-    mkdir -p /run/sshd
+    mkdir -p /run/sshd && \
+    # Image-baked ssh host keys would rotate on every rebuild (postinst ssh-keygen -A).
+    # sshd must use ONLY the sealed keys the entrypoint materializes at /root/.ssh.
+    rm -f /etc/ssh/ssh_host_*_key /etc/ssh/ssh_host_*_key.pub
 
 # pi coding agent (pinned; --ignore-scripts per upstream docs)
 RUN npm install -g --ignore-scripts "@earendil-works/pi-coding-agent@${PI_VERSION}"

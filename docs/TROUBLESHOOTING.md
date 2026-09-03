@@ -20,6 +20,29 @@ RUN apt-get install -y libevent-2.1-7 libncurses6 && \
 
 Verify inside the image: `ldd /opt/tmux/bin/tmux | grep "not found"` → empty.
 
+## 0b. Host key changed on every image rebuild (`REMOTE HOST IDENTIFICATION HAS CHANGED`)
+
+**Cause:** Debian's openssh-server postinst runs `ssh-keygen -A` at image build,
+baking fresh host keys into `/etc/ssh/ssh_host_*`. sshd used those (default
+config), so every image rollout rotated the host key — even though sealed keys
+were sitting in `/root/.ssh` untouched.
+
+**Diagnose:** fingerprint sshd actually serves vs the sealed key:
+
+```bash
+kubectl exec <pod> -- ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
+kubectl exec <pod> -- ssh-keygen -lf /root/.ssh/ssh_host_ed25519_key.pub
+```
+
+**Fix:** Dockerfile removes the baked keys (`rm -f /etc/ssh/ssh_host_*_key*`)
+and `container/sshd_config` sets `HostKey /root/.ssh/ssh_host_ed25519_key` (the
+entrypoint materializes the sealed key at boot). After the fix, clear `pi`
+entries from client `known_hosts` once and re-add with `accept-new`:
+
+```bash
+ssh-keygen -R pi -R pi.tailc16433.ts.net -R 100.118.244.0
+```
+
 ## 2. sshd exits at startup: `Subsystem 'sftp' already defined`
 
 **Cause:** Debian's `/etc/ssh/sshd_config` already defines `Subsystem sftp`;

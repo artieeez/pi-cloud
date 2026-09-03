@@ -1,4 +1,8 @@
 # pi-cloud sshd hardening: key-only, root with key, no PAM/empty passwords.
+# Host key comes from the SEALED secret (entrypoint copies it to /root/.ssh at
+# boot) — never the image-baked keys, which rotate on every image rebuild.
+HostKey /root/.ssh/ssh_host_ed25519_key
+
 Port 22
 ListenAddress 0.0.0.0
 
