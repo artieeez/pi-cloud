@@ -57,12 +57,14 @@ ARG PI_VERSION
 
 # Runtime deps: git (pi tool), ripgrep (pi grep), sshd (entry point), sqlite3 +
 # libvips (home repo specs/assets), ruby runtime libs, jq (secret assembly), bash.
+# libevent-2.1-7/libncurses6: runtime libs for the tmux built in the build stage.
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
       bash ca-certificates curl git ripgrep \
       openssh-server \
       sqlite3 libvips42 jq \
-      libyaml-0-2 libssl3 zlib1g libffi8 libgmp10 libreadline8 && \
+      libyaml-0-2 libssl3 zlib1g libffi8 libgmp10 libreadline8 \
+      libevent-2.1-7 libncurses6 && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives && \
     mkdir -p /run/sshd
 
