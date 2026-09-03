@@ -27,4 +27,5 @@ MaxAuthTries 4
 LoginGraceTime 30
 LogLevel VERBOSE
 
-Subsystem sftp internal-sftp
+# NOTE: no Subsystem directive here — Debian's /etc/ssh/sshd_config already
+# defines `Subsystem sftp`, and a second definition is a fatal config error.
