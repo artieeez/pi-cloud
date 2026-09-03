@@ -55,6 +55,7 @@ RUN curl -fsSL https://mise.jdx.dev/install.sh | sh && \
 FROM node:${NODE_VERSION}-bookworm-slim
 
 ARG PI_VERSION
+ARG KUBECTL_VERSION
 
 # Runtime deps: git (pi tool), ripgrep (pi grep), sshd (entry point), sqlite3 +
 # libvips (home repo specs/assets), ruby runtime libs, jq (secret assembly), bash.
