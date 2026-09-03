@@ -15,7 +15,7 @@ env:
   # Keep in sync with the ARGs in docker/base.Dockerfile. Bump the counter
   # suffix if you rebuild with the same ruby/tmux versions (e.g. OS update):
   # the app workflow pins this tag, so a new digest needs a new tag.
-  BASE_TAG: ruby-4.0.5_tmux-3.7c
+  BASE_TAG: ruby-4.0.5_tmux-3.7c-2
 
 jobs:
   build:

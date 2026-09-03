@@ -64,8 +64,9 @@ RUN curl -fsSL https://mise.jdx.dev/install.sh | sh && \
 FROM node:${NODE_VERSION}-bookworm-slim
 
 # ARGs declared before the first FROM are not visible inside this stage's RUN
-# commands — re-declare the ones used here (NEOVIM_VERSION in the nvim layer).
+# commands — re-declare the ones used here.
 ARG NEOVIM_VERSION
+ARG RUBY_VERSION
 
 # Runtime deps: git (pi tool), ripgrep (pi grep), sshd (entry point), sqlite3 +
 # libvips (home repo specs/assets), ruby runtime libs, jq (secret assembly), bash.
@@ -98,6 +99,20 @@ COPY --from=build /root/.config/mise /opt/mise-root/config
 ENV MISE_DATA_DIR=/opt/mise \
     MISE_CONFIG_DIR=/opt/mise-root/config \
     PATH="/opt/mise-root/local/bin:/opt/mise/shims:${PATH}"
+
+# The build stage's `mise use` wrote shims as symlinks to its build-time binary
+# path (/root/.local/bin/mise), which this stage relocates to
+# /opt/mise-root/local/bin/mise — leaving every shim dangling. Regenerate them
+# against the final mise location so ruby/gem/bundle resolve in any shell, and
+# fail the build if the ruby shim is still not executable.
+RUN rm -f /opt/mise/shims/* && \
+    PATH="/opt/mise-root/local/bin:${PATH}" \
+    MISE_DATA_DIR=/opt/mise \
+    MISE_CONFIG_DIR=/opt/mise-root/config \
+    MISE_YES=1 \
+    mise use -g "ruby@${RUBY_VERSION}" && \
+    test -x /opt/mise/shims/ruby && \
+    test "$(readlink /opt/mise/shims/ruby)" = "/opt/mise-root/local/bin/mise"
 
 # neovim — official prebuilt arm64 build (bookworm's apt neovim is 0.7.2, far too
 # old for a modern editor). Pinned by NEOVIM_VERSION; tag URL is immutable.
