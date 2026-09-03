@@ -1,0 +1,106 @@
+name: Build and push OCIR
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  REGISTRY: vcp.ocir.io
+  OCIR_NAMESPACE: axtvnrdemzo7
+  IMAGE_NAME: pi-cloud
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+      sha_tag: ${{ steps.meta.outputs.sha_tag }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Log in to OCIR
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.OCIR_USERNAME }}
+          password: ${{ secrets.OCIR_AUTH_TOKEN }}
+
+      - name: Image tags
+        id: meta
+        run: |
+          SHORT_SHA="$(echo "${GITHUB_SHA}" | cut -c1-7)"
+          echo "sha_tag=sha-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "image=${{ env.REGISTRY }}/${{ env.OCIR_NAMESPACE }}/${{ env.IMAGE_NAME }}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.sha_tag }}
+            ${{ steps.meta.outputs.image }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  update-gitops:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check for GITOPS_TOKEN
+        id: gate
+        env:
+          GITOPS_TOKEN: ${{ secrets.GITOPS_TOKEN }}
+        run: |
+          if [ -z "$GITOPS_TOKEN" ]; then
+            echo "GITOPS_TOKEN not set — skipping gitops bump (image was still pushed)"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout artr-gitops
+        if: steps.gate.outputs.skip == 'false'
+        uses: actions/checkout@v7
+        with:
+          repository: artieeez/artr-gitops
+          token: ${{ secrets.GITOPS_TOKEN }}
+          path: gitops
+
+      - name: Bump pi image tag (skip until manifests exist)
+        if: steps.gate.outputs.skip == 'false'
+        env:
+          IMAGE: ${{ needs.build.outputs.image }}:${{ needs.build.outputs.sha_tag }}
+        run: |
+          FILE=gitops/apps/pi/deployment.yaml
+          if [ ! -f "$FILE" ]; then
+            echo "apps/pi/deployment.yaml not present yet — skipping bump"
+            exit 0
+          fi
+          if ! grep -q 'image: vcp.ocir.io/axtvnrdemzo7/pi-cloud:' "$FILE"; then
+            echo "Expected image line not found in $FILE" >&2
+            exit 1
+          fi
+          sed -i "s|image: vcp.ocir.io/axtvnrdemzo7/pi-cloud:.*|image: ${IMAGE}|" "$FILE"
+
+      - name: Commit and push
+        if: steps.gate.outputs.skip == 'false'
+        working-directory: gitops
+        run: |
+          git config user.name "pi-cloud-ci-bot"
+          git config user.email "pi-cloud-ci-bot@users.noreply.github.com"
+          git add apps/pi/deployment.yaml
+          if git diff --staged --quiet; then
+            echo "No image change"
+            exit 0
+          fi
+          git commit -m "chore(pi): bump image to ${{ needs.build.outputs.sha_tag }}"
+          git push

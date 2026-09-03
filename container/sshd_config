@@ -1,0 +1,30 @@
+# pi-cloud sshd hardening: key-only, root with key, no PAM/empty passwords.
+Port 22
+ListenAddress 0.0.0.0
+
+PermitRootLogin prohibit-password
+PubkeyAuthentication yes
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitEmptyPasswords no
+ChallengeResponseAuthentication no
+UsePAM no
+
+# Single authorized_keys source
+AuthorizedKeysFile .ssh/authorized_keys
+
+# Keep session alive over flaky mobile networks
+ClientAliveInterval 30
+ClientAliveCountMax 6
+TCPKeepAlive yes
+
+# Hardening
+PermitUserEnvironment no
+X11Forwarding no
+AllowAgentForwarding yes
+AllowTcpForwarding yes
+MaxAuthTries 4
+LoginGraceTime 30
+LogLevel VERBOSE
+
+Subsystem sftp internal-sftp

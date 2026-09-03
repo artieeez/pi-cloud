@@ -1,0 +1,13 @@
+{
+  "defaultProvider": "opencode-go",
+  "defaultModel": "deepseek-v4-flash",
+  "defaultThinkingLevel": "high",
+  "hideThinkingBlock": true,
+  "theme": "dark",
+  "packages": [
+    "npm:pi-web-access",
+    "npm:pi-subagents",
+    "npm:@hsingjui/pi-hooks",
+    "npm:pi-background-tasks@latest"
+  ]
+}
