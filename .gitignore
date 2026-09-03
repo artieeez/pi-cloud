@@ -1,2 +1,4 @@
 .secrets/
 .DS_Store
+# pi agent runtime state (bg task outputs, sessions) — never commit
+.pi/

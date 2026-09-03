@@ -9,6 +9,10 @@ env:
   REGISTRY: vcp.ocir.io
   OCIR_NAMESPACE: axtvnrdemzo7
   IMAGE_NAME: pi-cloud
+  # Stable base (node + OS deps + tmux + mise/Ruby) built by build-base.yaml.
+  # Keep BASE_TAG in sync there; bump it when the base is republished.
+  BASE_IMAGE_NAME: pi-cloud-base
+  BASE_TAG: ruby-4.0.5_tmux-3.7c
 
 jobs:
   build:
@@ -43,6 +47,9 @@ jobs:
           context: .
           platforms: linux/arm64
           push: true
+          build-args: |
+            BASE_IMAGE=${{ env.REGISTRY }}/${{ env.OCIR_NAMESPACE }}/${{ env.BASE_IMAGE_NAME }}
+            BASE_TAG=${{ env.BASE_TAG }}
           tags: |
             ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.sha_tag }}
             ${{ steps.meta.outputs.image }}:latest

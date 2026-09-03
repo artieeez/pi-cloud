@@ -1,94 +1,28 @@
 # syntax=docker/dockerfile:1
 # check=error=true
 
-# pi.dev cloud box: pi coding agent + Ruby (mise) + tmux + sshd.
-# Runs on the artr OKE cluster (linux/arm64). SSH (key-only) is the only entry point;
-# attach to the `pi` tmux session after logging in.
+# pi.dev cloud box — thin APP image over the stable base.
+#
+# The heavy, rarely-changing content (node + OS deps, tmux, mise + Ruby) lives
+# in docker/base.Dockerfile (pi-cloud-base). This image carries only the
+# per-commit bits: pi agent version, kubectl, and container assets — so every
+# push builds a small delta instead of re-baking a ~1.1GB toolchain.
+#
+# Build args: BASE_IMAGE defaults to the local base image name so
+#   docker build -f docker/base.Dockerfile -t pi-cloud-base .
+#   docker build -t pi-cloud .
+# just works; CI passes the registry path + pinned tag (build-push-ocir.yaml).
 
-ARG NODE_VERSION=24
-ARG RUBY_VERSION=4.0.5
+ARG BASE_IMAGE=pi-cloud-base
+ARG BASE_TAG=latest
+
+FROM ${BASE_IMAGE}:${BASE_TAG}
+
 ARG PI_VERSION=0.84.4
-ARG TMUX_VERSION=3.7c
-ARG KUBECTL_VERSION=1.36.1
-
-# ---------------------------------------------------------------------------
-# Build stage: tmux 3.7c (bookworm ships 3.3a; pi needs >= 3.5 for csi-u keys)
-# and mise-managed Ruby (matches the local dev workflow; .ruby-version aware).
-# ---------------------------------------------------------------------------
-FROM node:${NODE_VERSION}-bookworm-slim AS build
-
-ARG RUBY_VERSION
-ARG TMUX_VERSION
-
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y \
-      build-essential autoconf automake bison pkg-config \
-      curl git ca-certificates \
-      libevent-dev libncurses-dev \
-      libssl-dev libyaml-dev zlib1g-dev libreadline-dev \
-      libffi-dev libgmp-dev libvips-dev && \
-    rm -rf /var/lib/apt/lists /var/cache/apt/archives
-
-# tmux from source (release tarball, no vendored deps needed beyond libevent/ncurses)
-RUN curl -fsSL "https://github.com/tmux/tmux/releases/download/${TMUX_VERSION}/tmux-${TMUX_VERSION}.tar.gz" -o /tmp/tmux.tar.gz && \
-    tar -C /tmp -xzf /tmp/tmux.tar.gz && \
-    cd /tmp/tmux-${TMUX_VERSION} && \
-    ./configure --prefix=/opt/tmux >/dev/null && \
-    make -j"$(nproc)" >/dev/null && \
-    make install >/dev/null && \
-    rm -rf /tmp/tmux*
-
-# mise (version manager) + Ruby runtime
-# - installs ruby 4.0.5 into /opt/mise (MISE_DATA_DIR)
-# - writes global config (ruby tool) to ~/.config/mise/config.toml
-# - creates shims under /opt/mise/shims so `ruby` resolves via .ruby-version
-ENV PATH="/root/.local/bin:${PATH}" \
-    MISE_DATA_DIR=/opt/mise \
-    MISE_YES=1
-
-RUN curl -fsSL https://mise.jdx.dev/install.sh | sh && \
-    mise use -g "ruby@${RUBY_VERSION}"
-
-# ---------------------------------------------------------------------------
-# Final image
-# ---------------------------------------------------------------------------
-FROM node:${NODE_VERSION}-bookworm-slim
-
-ARG PI_VERSION
-ARG KUBECTL_VERSION
-
-# Runtime deps: git (pi tool), ripgrep (pi grep), sshd (entry point), sqlite3 +
-# libvips (home repo specs/assets), ruby runtime libs, jq (secret assembly), bash.
-# libevent-2.1-7/libncurses6: runtime libs for the tmux built in the build stage.
-# Debian merges libevent into a single libevent-2.1.so.7;  tmux links the classic
-# libevent_core/libevent_extra split sonames -> provide compat symlinks.
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y \
-      bash ca-certificates curl git ripgrep \
-      openssh-server \
-      sqlite3 libvips42 jq \
-      libyaml-0-2 libssl3 zlib1g libffi8 libgmp10 libreadline8 \
-      libevent-2.1-7 libncurses6 && \
-    ln -s libevent-2.1.so.7.0.1 /usr/lib/$(uname -m)-linux-gnu/libevent_core-2.1.so.7 && \
-    ln -s libevent-2.1.so.7.0.1 /usr/lib/$(uname -m)-linux-gnu/libevent_extra-2.1.so.7 && \
-    rm -rf /var/lib/apt/lists /var/cache/apt/archives && \
-    mkdir -p /run/sshd && \
-    # Image-baked ssh host keys would rotate on every rebuild (postinst ssh-keygen -A).
-    # sshd must use ONLY the sealed keys the entrypoint materializes at /root/.ssh.
-    rm -f /etc/ssh/ssh_host_*_key /etc/ssh/ssh_host_*_key.pub
+ARG KUBECTL_VERSION=1.36.4
 
 # pi coding agent (pinned; --ignore-scripts per upstream docs)
 RUN npm install -g --ignore-scripts "@earendil-works/pi-coding-agent@${PI_VERSION}"
-
-# tmux + mise/ruby from build stage (binary, installs+shims, global config)
-COPY --from=build /opt/tmux /opt/tmux
-ENV PATH="/opt/tmux/bin:${PATH}"
-COPY --from=build /root/.local /opt/mise-root/local
-COPY --from=build /opt/mise /opt/mise
-COPY --from=build /root/.config/mise /opt/mise-root/config
-ENV MISE_DATA_DIR=/opt/mise \
-    MISE_CONFIG_DIR=/opt/mise-root/config \
-    PATH="/opt/mise-root/local/bin:/opt/mise/shims:${PATH}"
 
 # kubectl, pinned to the cluster server version (check: kubectl version -o json)
 # sha256 sidecar = https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/arm64/kubectl.sha256

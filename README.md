@@ -11,12 +11,28 @@ A persistent, SSH-accessible dev box on the artr OKE cluster (oracle-cluster) fo
 - **Ruby** via [mise](https://mise.jdx.dev) (4.0.5, matches `home`) — `mise` is `.ruby-version` aware
 - **tmux 3.7c** built from source (≥3.5 needed for `extended-keys-format csi-u`, see pi's tmux docs)
 - **sshd** (key-only, root, hardened) — the only entry point, port 22
+- **neovim 0.12.5** (official arm64 build) — tmux + sshd + nvim = phone-friendly editing
 - git, ripgrep, sqlite3, libvips, jq, Node 24
+
+## Two images: base + app
+
+The image is split so per-commit builds stay small and the cluster node stores
+one copy of the heavy layers:
+
+- **`pi-cloud-base`** (`docker/base.Dockerfile`) — node + OS deps + tmux + neovim
+  + mise/Ruby (~800MB). Rebuilt rarely (ruby/node/tmux/OS bumps) by `build-base.yaml`
+  (path-triggered push + `workflow_dispatch`); pushed as
+  `vcp.ocir.io/axtvnrdemzo7/pi-cloud-base:ruby-4.0.5_tmux-3.7c` (+ `latest`).
+- **`pi-cloud`** (repo-root `Dockerfile`) — thin delta over the base: pi agent
+  version, kubectl, container assets (`container/`). Built on every push.
 
 ## How it's deployed
 
 GitHub Action builds `linux/arm64` → pushes to OCIR (`vcp.ocir.io/axtvnrdemzo7/pi-cloud`)
 → bumps the image tag in `artieeez/artr-gitops/apps/pi/deployment.yaml` → Argo CD syncs.
+
+The app build pins `BASE_TAG` (both workflows must stay in sync when the base is
+re-published under a new tag).
 
 ## Secrets volume layout (`/secrets`, mounted from SealedSecrets)
 
@@ -57,6 +73,8 @@ Set-up + access details:
 ## Local build
 
 ```bash
+# base first (only needed once per base change), then the app image
+docker build -f docker/base.Dockerfile -t pi-cloud-base .
 docker build -t pi-cloud .
 docker run -d -p 2222:22 -v "$PWD/.secrets:/secrets:ro" --name pi-cloud pi-cloud
 ssh -p 2222 root@localhost

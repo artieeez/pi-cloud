@@ -10,7 +10,7 @@ runtime libs, and Debian (bookworm) *merges* libevent 2.1 into a single
 `libevent-2.1.so.7` while tmux links the classic split sonames
 `libevent_core-2.1.so.7` / `libevent_extra-2.1.so.7`.
 
-**Fix (Dockerfile, final stage):**
+**Fix (docker/base.Dockerfile, final stage):**
 
 ```dockerfile
 RUN apt-get install -y libevent-2.1-7 libncurses6 && \
@@ -34,7 +34,7 @@ kubectl exec <pod> -- ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
 kubectl exec <pod> -- ssh-keygen -lf /root/.ssh/ssh_host_ed25519_key.pub
 ```
 
-**Fix:** Dockerfile removes the baked keys (`rm -f /etc/ssh/ssh_host_*_key*`)
+**Fix:** docker/base.Dockerfile removes the baked keys (`rm -f /etc/ssh/ssh_host_*_key*`)
 and `container/sshd_config` sets `HostKey /root/.ssh/ssh_host_ed25519_key` (the
 entrypoint materializes the sealed key at boot). After the fix, clear `pi`
 entries from client `known_hosts` once and re-add with `accept-new`:
