@@ -19,17 +19,19 @@ Both the Mac and the phone have `~/.ssh/config` entries:
 
 ```
 Host pi-cloud pi
-  HostName pi
+  HostName pi.tailc16433.ts.net
   User root
   ServerAliveInterval 30
   StrictHostKeyChecking accept-new
 ```
 
-So either of these work:
+Use the FQDN in `HostName` (MagicDNS short names usually resolve, but macOS
+has shown intermittent short-name resolution for `pi`), and the aliases keep
+command typing short:
 
 ```bash
-ssh pi          # short name resolves via MagicDNS
-ssh pi-cloud    # alias with keep-alive
+ssh pi          # short name (usually works, macOS occasionally flaky)
+ssh pi-cloud    # alias using the FQDN above — reliable on both devices
 ```
 
 ## Mac conveniences (`~/.zshrc`)
