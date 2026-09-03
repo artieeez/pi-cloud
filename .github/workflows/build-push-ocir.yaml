@@ -77,12 +77,14 @@ jobs:
 
       - name: Bump pi image tag (skip until manifests exist)
         if: steps.gate.outputs.skip == 'false'
+        id: bump
         env:
           IMAGE: ${{ needs.build.outputs.image }}:${{ needs.build.outputs.sha_tag }}
         run: |
           FILE=gitops/apps/pi/deployment.yaml
           if [ ! -f "$FILE" ]; then
             echo "apps/pi/deployment.yaml not present yet — skipping bump"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           if ! grep -q 'image: vcp.ocir.io/axtvnrdemzo7/pi-cloud:' "$FILE"; then
@@ -90,9 +92,10 @@ jobs:
             exit 1
           fi
           sed -i "s|image: vcp.ocir.io/axtvnrdemzo7/pi-cloud:.*|image: ${IMAGE}|" "$FILE"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
 
       - name: Commit and push
-        if: steps.gate.outputs.skip == 'false'
+        if: steps.gate.outputs.skip == 'false' && steps.bump.outputs.changed == 'true'
         working-directory: gitops
         run: |
           git config user.name "pi-cloud-ci-bot"
