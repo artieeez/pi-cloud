@@ -36,6 +36,20 @@ ssh root@pi.<tailnet>.ts.net      # via Tailscale operator (recommended)
 tmux attach -t pi                 # the pre-created session; or start `pi` in it
 ```
 
+From devices on your tailnet, MagicDNS short names work, so it's just:
+
+```bash
+ssh pi          # or `ssh pi-cloud` with the ssh config entry (Mac + phone)
+```
+
+Set-up + access details:
+
+| Doc | Contents |
+|---|---|
+| [docs/ACCESS.md](docs/ACCESS.md) | hostnames, ssh config, Mac aliases (`pi-cloud` / `picloud`) |
+| [docs/PHONE-TERMUX.md](docs/PHONE-TERMUX.md) | Termux over ADB, keygen, phone ssh config, 16 KB dialog |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | every runtime gotcha hit during bring-up + fixes |
+
 `AUTO_PI=1` on the Deployment boots pi directly inside the tmux session.
 
 ## Local build
