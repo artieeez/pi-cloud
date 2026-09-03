@@ -38,14 +38,15 @@ RUN curl -fsSL "https://github.com/tmux/tmux/releases/download/${TMUX_VERSION}/t
     rm -rf /tmp/tmux*
 
 # mise (version manager) + Ruby runtime
+# - installs ruby 4.0.5 into /opt/mise (MISE_DATA_DIR)
+# - writes global config (ruby tool) to ~/.config/mise/config.toml
+# - creates shims under /opt/mise/shims so `ruby` resolves via .ruby-version
 ENV PATH="/root/.local/bin:${PATH}" \
     MISE_DATA_DIR=/opt/mise \
-    MISE_CACHE_DIR=/opt/mise-cache \
     MISE_YES=1
 
 RUN curl -fsSL https://mise.jdx.dev/install.sh | sh && \
-    mise use -g "ruby@${RUBY_VERSION}" && \
-    mise cache clean
+    mise use -g "ruby@${RUBY_VERSION}"
 
 # ---------------------------------------------------------------------------
 # Final image
@@ -68,15 +69,15 @@ RUN apt-get update -qq && \
 # pi coding agent (pinned; --ignore-scripts per upstream docs)
 RUN npm install -g --ignore-scripts "@earendil-works/pi-coding-agent@${PI_VERSION}"
 
-# tmux + mise/ruby from build stage
+# tmux + mise/ruby from build stage (binary, installs+shims, global config)
 COPY --from=build /opt/tmux /opt/tmux
 ENV PATH="/opt/tmux/bin:${PATH}"
 COPY --from=build /root/.local /opt/mise-root/local
 COPY --from=build /opt/mise /opt/mise
-COPY --from=build /opt/mise-cache /opt/mise-cache
+COPY --from=build /root/.config/mise /opt/mise-root/config
 ENV MISE_DATA_DIR=/opt/mise \
-    MISE_CACHE_DIR=/opt/mise-cache \
-    PATH="/opt/mise-root/local/bin:${PATH}"
+    MISE_CONFIG_DIR=/opt/mise-root/config \
+    PATH="/opt/mise-root/local/bin:/opt/mise/shims:${PATH}"
 
 # Container assets
 COPY container/sshd_config /etc/ssh/sshd_config.d/10-pi-cloud.conf
