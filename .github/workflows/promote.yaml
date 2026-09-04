@@ -1,0 +1,64 @@
+name: Promote pi-cloud image (manual deploy)
+
+# Deploys are deliberate: pushing to main only builds and pushes images.
+# Run this workflow (Actions -> "Promote pi-cloud image (manual deploy)" ->
+# "Run workflow") with the sha tag to deploy, e.g. sha-88a773e. It bumps
+# artr-gitops/apps/pi/deployment.yaml; Argo CD auto-syncs the pi app.
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag to deploy (e.g. sha-88a773e)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate tag
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          if [[ ! "${IMAGE_TAG}" =~ ^sha-[0-9a-f]{7}$ ]]; then
+            echo "image_tag must match ^sha-[0-9a-f]{7}\$ (got: ${IMAGE_TAG})" >&2
+            exit 1
+          fi
+
+      - name: Checkout artr-gitops
+        uses: actions/checkout@v7
+        with:
+          repository: artieeez/artr-gitops
+          token: ${{ secrets.GITOPS_TOKEN }}
+          path: gitops
+
+      - name: Bump pi image tag
+        env:
+          IMAGE: vcp.ocir.io/axtvnrdemzo7/pi-cloud:${{ inputs.image_tag }}
+        run: |
+          FILE=gitops/apps/pi/deployment.yaml
+          if [ ! -f "$FILE" ]; then
+            echo "apps/pi/deployment.yaml not present" >&2
+            exit 1
+          fi
+          sed -i "s|image: vcp.ocir.io/axtvnrdemzo7/pi-cloud:.*|image: ${IMAGE}|" "$FILE"
+          if ! grep -q "image: ${IMAGE}" "$FILE"; then
+            echo "Expected image line not found in $FILE" >&2
+            exit 1
+          fi
+
+      - name: Commit and push
+        working-directory: gitops
+        run: |
+          git config user.name "pi-cloud-ci-bot"
+          git config user.email "pi-cloud-ci-bot@users.noreply.github.com"
+          git add apps/pi/deployment.yaml
+          if git diff --staged --quiet; then
+            echo "No image change (already at ${{ inputs.image_tag }})"
+            exit 0
+          fi
+          git commit -m "chore(pi): promote image to ${{ inputs.image_tag }}"
+          git push

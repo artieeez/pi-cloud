@@ -56,61 +56,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  update-gitops:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Check for GITOPS_TOKEN
-        id: gate
-        env:
-          GITOPS_TOKEN: ${{ secrets.GITOPS_TOKEN }}
-        run: |
-          if [ -z "$GITOPS_TOKEN" ]; then
-            echo "GITOPS_TOKEN not set — skipping gitops bump (image was still pushed)"
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Checkout artr-gitops
-        if: steps.gate.outputs.skip == 'false'
-        uses: actions/checkout@v7
-        with:
-          repository: artieeez/artr-gitops
-          token: ${{ secrets.GITOPS_TOKEN }}
-          path: gitops
-
-      - name: Bump pi image tag (skip until manifests exist)
-        if: steps.gate.outputs.skip == 'false'
-        id: bump
-        env:
-          IMAGE: ${{ needs.build.outputs.image }}:${{ needs.build.outputs.sha_tag }}
-        run: |
-          FILE=gitops/apps/pi/deployment.yaml
-          if [ ! -f "$FILE" ]; then
-            echo "apps/pi/deployment.yaml not present yet — skipping bump"
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if ! grep -q 'image: vcp.ocir.io/axtvnrdemzo7/pi-cloud:' "$FILE"; then
-            echo "Expected image line not found in $FILE" >&2
-            exit 1
-          fi
-          sed -i "s|image: vcp.ocir.io/axtvnrdemzo7/pi-cloud:.*|image: ${IMAGE}|" "$FILE"
-          echo "changed=true" >> "$GITHUB_OUTPUT"
-
-      - name: Commit and push
-        if: steps.gate.outputs.skip == 'false' && steps.bump.outputs.changed == 'true'
-        working-directory: gitops
-        run: |
-          git config user.name "pi-cloud-ci-bot"
-          git config user.email "pi-cloud-ci-bot@users.noreply.github.com"
-          git add apps/pi/deployment.yaml
-          if git diff --staged --quiet; then
-            echo "No image change"
-            exit 0
-          fi
-          git commit -m "chore(pi): bump image to ${{ needs.build.outputs.sha_tag }}"
-          git push
+  # Deploys are manual: builds never touch artr-gitops. Promote an image by
+  # running the promote workflow (workflow_dispatch) with the tag to deploy.
+  # See .github/workflows/promote.yaml.
