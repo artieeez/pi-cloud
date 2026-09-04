@@ -20,6 +20,9 @@ FROM ${BASE_IMAGE}:${BASE_TAG}
 
 ARG PI_VERSION=0.84.4
 ARG KUBECTL_VERSION=1.36.4
+ARG HERDR_VERSION=0.8.2
+# herdr-linux-aarch64 sha256 (release assets carry no checksum sidecar; pinned here)
+ARG HERDR_SHA256=f55610658e1c2e0d2aaef730b4b2ab885f7f8ba00285ab372bfb14f2e3d5b40d
 
 # pi coding agent (pinned; --ignore-scripts per upstream docs)
 RUN npm install -g --ignore-scripts "@earendil-works/pi-coding-agent@${PI_VERSION}"
@@ -32,6 +35,13 @@ RUN cd /tmp && \
     echo "$(cat kubectl.sha256)  kubectl" | sha256sum -c - && \
     install -m 0755 kubectl /usr/local/bin/kubectl && \
     rm -f kubectl kubectl.sha256
+
+# herdr (agent multiplexer; pinned, checksum-verified — no upstream sidecar)
+RUN cd /tmp && \
+    curl -fsSLO "https://github.com/herdrdev/herdr/releases/download/v${HERDR_VERSION}/herdr-linux-aarch64" && \
+    echo "${HERDR_SHA256}  herdr-linux-aarch64" | sha256sum -c - && \
+    install -m 0755 herdr-linux-aarch64 /usr/local/bin/herdr && \
+    rm -f herdr-linux-aarch64
 
 # In-cluster kubeconfig (ServiceAccount-based, see docs)
 COPY container/kubeconfig.yaml /root/.kube/config
