@@ -5,13 +5,17 @@ A persistent, SSH-accessible dev box on the artr OKE cluster (oracle-cluster) fo
 
 ## What's inside
 
-- **pi coding agent** (global npm, pinned 0.84.x) — run `pi` inside tmux
+- **pi coding agent** (global npm, pinned 0.84.x) — hosted by herdr (terminal workspace
+  manager for AI agents; `pi` is a recognized agent kind)
 - **kubectl v1.36.1** with an in-cluster kubeconfig (`pi-admin` SA, cluster-admin) —
   the box can inspect Argo apps, pods, and logs directly
 - **Ruby** via [mise](https://mise.jdx.dev) (4.0.5, matches `home`) — `mise` is `.ruby-version` aware
-- **tmux 3.7c** built from source (≥3.5 needed for `extended-keys-format csi-u`, see pi's tmux docs)
+- **herdr 0.8.x** — terminal workspace manager: workspaces/tabs/panes host pi agents
+  and raw shells; a persistent server survives SSH disconnects
 - **sshd** (key-only, root, hardened) — the only entry point, port 22
-- **neovim 0.12.5** (official arm64 build) — tmux + sshd + nvim = phone-friendly editing
+- **neovim 0.12.5** (official arm64 build) — sshd + nvim = phone-friendly editing
+- ~~tmux~~ — removed from the boot flow (the base image still carries the binary
+  until the next base rebuild; herdr replaces it)
 - git, ripgrep, sqlite3, libvips, jq, Node 24
 
 ## Two images: base + app
@@ -19,10 +23,11 @@ A persistent, SSH-accessible dev box on the artr OKE cluster (oracle-cluster) fo
 The image is split so per-commit builds stay small and the cluster node stores
 one copy of the heavy layers:
 
-- **`pi-cloud-base`** (`docker/base.Dockerfile`) — node + OS deps + tmux + neovim
-  + mise/Ruby (~800MB). Rebuilt rarely (ruby/node/tmux/OS bumps) by `build-base.yaml`
+- **`pi-cloud-base`** (`docker/base.Dockerfile`) — node + OS deps + neovim
+  + mise/Ruby (~800MB). Rebuilt rarely (ruby/node/OS bumps) by `build-base.yaml`
   (path-triggered push + `workflow_dispatch`); pushed as
-  `vcp.ocir.io/axtvnrdemzo7/pi-cloud-base:ruby-4.0.5_tmux-3.7c` (+ `latest`).
+  `vcp.ocir.io/axtvnrdemzo7/pi-cloud-base:ruby-4.0.5` (+ `latest`).
+  (tmux was built into the base until the herdr switch; the next base rebuild drops it.)
 - **`pi-cloud`** (repo-root `Dockerfile`) — thin delta over the base: pi agent
   version, kubectl, container assets (`container/`). Built on every push.
 
@@ -45,7 +50,7 @@ re-published under a new tag).
 | `/secrets/pi/auth.json` | pi `auth.json` (opencode-go + friends) | no → pi has no model auth |
 
 Entrypoint copies these into `/root/.ssh` and `/root/.pi/agent`, runs the boot
-sync (see below), then starts sshd and a pre-created `pi` tmux session.
+sync (see below), starts the herdr server (agent host), then sshd.
 
 ## Boot provisioning (config + repos)
 
@@ -59,15 +64,18 @@ box's environment context is injected by the `pi-cloud-context` extension
 
 ## Using it
 
+The box boots a **herdr** server with a shell pane ready in `~/artieeez`.
+Attach and start agents there:
+
 ```bash
-ssh root@pi.<tailnet>.ts.net      # via Tailscale operator (recommended)
-tmux attach -t pi                 # the pre-created session; or start `pi` in it
+ssh pi          # or `ssh pi-cloud` / ssh root@pi.<tailnet>.ts.net
+herdr           # attach to the herdr session (panes/tabs/workspaces)
 ```
 
-From devices on your tailnet, MagicDNS short names work, so it's just:
+or from a device with the herdr CLI (your Mac has it via Homebrew):
 
 ```bash
-ssh pi          # or `ssh pi-cloud` with the ssh config entry (Mac + phone)
+herdr --remote pi-cloud          # attach to the box's herdr server over SSH
 ```
 
 Set-up + access details:
@@ -79,7 +87,7 @@ Set-up + access details:
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | every runtime gotcha hit during bring-up + fixes |
 | [docs/BOOT-SYNC.md](docs/BOOT-SYNC.md) | boot provisioning design: config + repo sync, layout |
 
-`AUTO_PI=1` on the Deployment boots pi directly inside the tmux session.
+`AUTO_PI=1` on the Deployment starts a pi agent pane inside the boot herdr server.
 
 ## Local build
 

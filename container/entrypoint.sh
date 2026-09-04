@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # pi-cloud entrypoint: assemble sealed secrets into ~/.ssh and ~/.pi/agent,
-# start sshd (foreground, logs to stderr), pre-create the `pi` tmux session.
+# run the boot sync, start the herdr server (agent host), then sshd.
 set -euo pipefail
 
 HOME_DIR=/root
@@ -19,7 +19,7 @@ chmod 700 "${SSH_DIR}"
 
 # ---------------------------------------------------------------------------
 # /root is the PVC mount: image files baked under /root are shadowed at
-# runtime, so seed the PVC home from /opt copies when missing.
+# runtime, so seed the PVC home from /opt copies when missing (kubeconfig).
 # ---------------------------------------------------------------------------
 if [ -f /opt/pi-cloud-kubeconfig.yaml ]; then
   mkdir -p "${HOME_DIR}/.kube"
@@ -28,10 +28,6 @@ if [ -f /opt/pi-cloud-kubeconfig.yaml ]; then
     chmod 600 "${HOME_DIR}/.kube/config"
     log "seeded in-cluster kubeconfig"
   fi
-fi
-if [ -f /opt/pi-cloud-tmux.conf ] && [ ! -f "${HOME_DIR}/.tmux.conf" ]; then
-  cp /opt/pi-cloud-tmux.conf "${HOME_DIR}/.tmux.conf"
-  log "seeded .tmux.conf"
 fi
 
 # ---------------------------------------------------------------------------
@@ -94,21 +90,45 @@ fi
 
 # ---------------------------------------------------------------------------
 # Repos live on the PVC under ~/artieeez (mirrors the Mac layout); guarantee it
-# exists so the tmux session below has a stable start dir.
+# exists so the boot herdr pane can be rooted at ~/artieeez.
 # ---------------------------------------------------------------------------
 mkdir -p "${HOME_DIR}/artieeez"
 
 # ---------------------------------------------------------------------------
-# tmux: pre-create the `pi` session (wide) so `tmux attach -t pi` works on SSH.
-# Auto-start pi inside it when AUTO_PI=1.
+# herdr: terminal workspace manager hosting pi agents. Start the headless
+# server at boot so agents survive SSH disconnects and inherit the container
+# env (PI_CLOUD, DEEPINFRA_API_KEY). Attach later with `herdr` over ssh, or
+# `herdr --remote pi-cloud` from a device that has the herdr CLI.
 # ---------------------------------------------------------------------------
-if ! tmux has-session -t pi 2>/dev/null; then
-  if [ "${AUTO_PI:-0}" = "1" ]; then
-    tmux new-session -d -s pi -c "${HOME_DIR}/artieeez" -x 240 -y 60 "pi; exec bash"
-  else
-    tmux new-session -d -s pi -c "${HOME_DIR}/artieeez" -x 240 -y 60 -n shell
+HDR_SOCK="${HOME_DIR}/.config/herdr/herdr.sock"
+if [ ! -S "${HDR_SOCK}" ]; then
+  ( setsid herdr server >/var/log/herdr-server.log 2>&1 < /dev/null & )     || log "herdr server start failed"
+fi
+ready=0
+for _ in $(seq 1 30); do
+  if [ -S "${HDR_SOCK}" ]; then ready=1; break; fi
+  sleep 1
+done
+if [ "${ready}" != "1" ]; then
+  log "WARNING: herdr server not ready (see /var/log/herdr-server.log)"
+else
+  log "herdr server ready"
+  # Give the user a shell pane rooted at ~/artieeez next to the auto-created
+  # default pane (which sits at /root). Fresh server per boot -> no buildup.
+  ROOT_PANE="$(herdr pane list 2>/dev/null | jq -r '.result.panes[] | select(.cwd == "/root") | .pane_id' | head -1)"
+  NEW_PANE=""
+  if [ -n "${ROOT_PANE}" ]; then
+    NEW_PANE="$(herdr pane split --pane "${ROOT_PANE}" --direction right --cwd "${HOME_DIR}/artieeez" 2>/dev/null | jq -r '.result.pane.pane_id // empty')"
+    [ -n "${NEW_PANE}" ] && log "herdr shell pane ready at ~/artieeez (${NEW_PANE})"
   fi
-  log "tmux session 'pi' created (AUTO_PI=${AUTO_PI:-0})"
+  if [ "${AUTO_PI:-0}" = "1" ]; then
+    TARGET="${NEW_PANE:-${ROOT_PANE}}"
+    if [ -n "${TARGET}" ]       && herdr agent start pi --kind pi --pane "${TARGET}" >/dev/null 2>&1; then
+      log "pi agent started in herdr pane (AUTO_PI=1)"
+    else
+      log "pi agent start failed (run 'herdr' on the box to start it manually)"
+    fi
+  fi
 fi
 
 log "starting sshd (key-only auth)"

@@ -38,11 +38,14 @@ ssh pi-cloud    # alias using the FQDN above — reliable on both devices
 
 ```bash
 alias pi-cloud="ssh pi-cloud"                 # ssh pi-cloud
-alias picloud="ssh -t pi-cloud 'tmux attach -t pi 2>/dev/null || tmux new -s pi'"
+alias picloud="ssh -t pi-cloud herdr"
 ```
+(the Mac's Homebrew `herdr` attaches to the box's herdr server over SSH; run
+`herdr --remote pi-cloud` anywhere the herdr CLI exists, e.g. from iTerm)
 
 - `pi-cloud` — a plain shell on the box
-- `picloud` — one word: SSH + attach to the `pi` tmux session (creates it if missing); `Ctrl+B D` to detach without killing work
+- `picloud` — one word: SSH into the box and attach the herdr TUI (herdr panes keep
+  running agents alive after you disconnect; reattach any time)
 
 ## Phone (Termux)
 

@@ -68,8 +68,13 @@ adding keys"), then push; Argo syncs; the next pod start picks it up.
 
 ```bash
 $TERMUX "printf 'Host pi-cloud pi\n  HostName pi\n  User root\n  ServerAliveInterval 30\n  StrictHostKeyChecking accept-new\n' > ~/.ssh/config && chmod 600 ~/.ssh/config"
-$TERMUX "ssh pi-cloud 'tmux ls'"
+$TERMUX "ssh pi-cloud 'herdr status'"
 ```
+
+> Agents live in **herdr** panes on the box (no tmux). From Termux, `ssh pi-cloud`
+> then `herdr` opens the full-screen TUI; killing the ssh session does **not** stop
+> panes — reattach with `herdr` again later. (A native herdr client in Termux is not
+> set up yet — the in-ssh TUI is the phone path.)
 
 ## Notes / gotchas
 

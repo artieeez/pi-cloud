@@ -51,8 +51,6 @@ COPY container/kubeconfig.yaml /opt/pi-cloud-kubeconfig.yaml
 # Container assets
 COPY container/sshd_config /etc/ssh/sshd_config.d/10-pi-cloud.conf
 COPY container/profile.d/pi-cloud.sh /etc/profile.d/pi-cloud.sh
-# tmux config — same story as the kubeconfig (seeded to /root/.tmux.conf at boot).
-COPY container/tmux.conf /opt/pi-cloud-tmux.conf
 COPY container/entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY container/sync-configs.sh /usr/local/bin/sync-configs.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/sync-configs.sh && \
