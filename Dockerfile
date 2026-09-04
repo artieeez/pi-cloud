@@ -43,22 +43,26 @@ RUN cd /tmp && \
     install -m 0755 herdr-linux-aarch64 /usr/local/bin/herdr && \
     rm -f herdr-linux-aarch64
 
-# In-cluster kubeconfig (ServiceAccount-based, see docs)
-COPY container/kubeconfig.yaml /root/.kube/config
+# In-cluster kubeconfig (ServiceAccount-based, see docs). Baked OUTSIDE /root:
+# /root is the PVC mount at runtime and shadows image content — the entrypoint
+# seeds /root/.kube/config from here when absent.
+COPY container/kubeconfig.yaml /opt/pi-cloud-kubeconfig.yaml
 
 # Container assets
 COPY container/sshd_config /etc/ssh/sshd_config.d/10-pi-cloud.conf
 COPY container/profile.d/pi-cloud.sh /etc/profile.d/pi-cloud.sh
-COPY container/tmux.conf /root/.tmux.conf
+# tmux config — same story as the kubeconfig (seeded to /root/.tmux.conf at boot).
+COPY container/tmux.conf /opt/pi-cloud-tmux.conf
 COPY container/entrypoint.sh /usr/local/bin/entrypoint.sh
-COPY container/pi-agent/ /opt/pi-agent/
-RUN chmod +x /usr/local/bin/entrypoint.sh && \
+COPY container/sync-configs.sh /usr/local/bin/sync-configs.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/sync-configs.sh && \
     ln -s /usr/local/bin/entrypoint.sh /entrypoint
 
 # Root with key-only SSH (personal dev box; never expose publicly without a
 # non-root user + hardening).
 USER root
-WORKDIR /workspace
+# ~/artieeez mirrors the Mac ~/artieeez layout (see docs/BOOT-SYNC.md).
+WORKDIR /root/artieeez
 
 EXPOSE 22
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

@@ -18,6 +18,23 @@ chmod 700 "${HOME_DIR}"
 chmod 700 "${SSH_DIR}"
 
 # ---------------------------------------------------------------------------
+# /root is the PVC mount: image files baked under /root are shadowed at
+# runtime, so seed the PVC home from /opt copies when missing.
+# ---------------------------------------------------------------------------
+if [ -f /opt/pi-cloud-kubeconfig.yaml ]; then
+  mkdir -p "${HOME_DIR}/.kube"
+  if [ ! -f "${HOME_DIR}/.kube/config" ]; then
+    cp /opt/pi-cloud-kubeconfig.yaml "${HOME_DIR}/.kube/config"
+    chmod 600 "${HOME_DIR}/.kube/config"
+    log "seeded in-cluster kubeconfig"
+  fi
+fi
+if [ -f /opt/pi-cloud-tmux.conf ] && [ ! -f "${HOME_DIR}/.tmux.conf" ]; then
+  cp /opt/pi-cloud-tmux.conf "${HOME_DIR}/.tmux.conf"
+  log "seeded .tmux.conf"
+fi
+
+# ---------------------------------------------------------------------------
 # SSH host keys — sealed for stability across restarts (phone known_hosts).
 # Fallback: generate into the persistent home once.
 # ---------------------------------------------------------------------------
@@ -53,12 +70,17 @@ if [ -d "${SECRETS_DIR}/git" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# pi agent config: default settings (image-baked templates) + sealed auth.
-# Never overwrite user tweaks already persisted on the volume.
+# Boot provisioning: sync pi-config -> ~/.pi/agent, dotagents -> ~/.agents and
+# the work repos into ~/artieeez (docs/BOOT-SYNC.md). Non-fatal: on failure the
+# box still boots on sealed auth + pi built-in defaults.
 # ---------------------------------------------------------------------------
-[ -f "${PI_DIR}/settings.json" ] || cp /opt/pi-agent/settings.json "${PI_DIR}/settings.json"
-[ -f "${PI_DIR}/AGENTS.md" ] || cp /opt/pi-agent/AGENTS.md "${PI_DIR}/AGENTS.md"
+/usr/local/bin/sync-configs.sh || log "boot sync failed (continuing)"
 
+# ---------------------------------------------------------------------------
+# pi model auth: overlay the sealed auth.json onto ~/.pi/agent/auth.json. The
+# file is gitignored in pi-config so the boot sync never touches it; this merge
+# deliberately runs AFTER sync.
+# ---------------------------------------------------------------------------
 if [ -f "${SECRETS_DIR}/pi/auth.json" ]; then
   if [ -f "${PI_DIR}/auth.json" ]; then
     tmp=$(mktemp)
@@ -71,9 +93,10 @@ if [ -f "${SECRETS_DIR}/pi/auth.json" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Workspace: repos live on the PVC under /workspace.
+# Repos live on the PVC under ~/artieeez (mirrors the Mac layout); guarantee it
+# exists so the tmux session below has a stable start dir.
 # ---------------------------------------------------------------------------
-mkdir -p /workspace
+mkdir -p "${HOME_DIR}/artieeez"
 
 # ---------------------------------------------------------------------------
 # tmux: pre-create the `pi` session (wide) so `tmux attach -t pi` works on SSH.
@@ -81,9 +104,9 @@ mkdir -p /workspace
 # ---------------------------------------------------------------------------
 if ! tmux has-session -t pi 2>/dev/null; then
   if [ "${AUTO_PI:-0}" = "1" ]; then
-    tmux new-session -d -s pi -x 240 -y 60 "pi; exec bash"
+    tmux new-session -d -s pi -c "${HOME_DIR}/artieeez" -x 240 -y 60 "pi; exec bash"
   else
-    tmux new-session -d -s pi -x 240 -y 60 -n shell
+    tmux new-session -d -s pi -c "${HOME_DIR}/artieeez" -x 240 -y 60 -n shell
   fi
   log "tmux session 'pi' created (AUTO_PI=${AUTO_PI:-0})"
 fi

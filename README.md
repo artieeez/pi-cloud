@@ -44,8 +44,18 @@ re-published under a new tag).
 | `/secrets/git/known_hosts` | `github.com` host key | yes |
 | `/secrets/pi/auth.json` | pi `auth.json` (opencode-go + friends) | no → pi has no model auth |
 
-Entrypoint copies these into `/root/.ssh` and `/root/.pi/agent`, then starts sshd and a
-pre-created `pi` tmux session.
+Entrypoint copies these into `/root/.ssh` and `/root/.pi/agent`, runs the boot
+sync (see below), then starts sshd and a pre-created `pi` tmux session.
+
+## Boot provisioning (config + repos)
+
+On every boot the entrypoint runs `sync-configs.sh` (deploy key required, see
+`/secrets/git`): it force-syncs your `pi-config` → `~/.pi/agent` and `dotagents`
+→ `~/.agents`, then clones/updates the work repos under **`~/artieeez`**
+(`artr-gitops`, `pi-cloud`, `oracle-cluster`, `home`, `home-knowledge`) —
+mirroring your Mac `~/artieeez` layout. The image ships no baked pi config; the
+box's environment context is injected by the `pi-cloud-context` extension
+(`PI_CLOUD=1`). Details: [docs/BOOT-SYNC.md](docs/BOOT-SYNC.md).
 
 ## Using it
 
@@ -67,6 +77,7 @@ Set-up + access details:
 | [docs/ACCESS.md](docs/ACCESS.md) | hostnames, ssh config, Mac aliases (`pi-cloud` / `picloud`) |
 | [docs/PHONE-TERMUX.md](docs/PHONE-TERMUX.md) | Termux over ADB, keygen, phone ssh config, 16 KB dialog |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | every runtime gotcha hit during bring-up + fixes |
+| [docs/BOOT-SYNC.md](docs/BOOT-SYNC.md) | boot provisioning design: config + repo sync, layout |
 
 `AUTO_PI=1` on the Deployment boots pi directly inside the tmux session.
 
