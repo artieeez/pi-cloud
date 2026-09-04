@@ -101,8 +101,11 @@ mkdir -p "${HOME_DIR}/artieeez"
 # `herdr --remote pi-cloud` from a device that has the herdr CLI.
 # ---------------------------------------------------------------------------
 HDR_SOCK="${HOME_DIR}/.config/herdr/herdr.sock"
+# The whole herdr section runs with errexit/pipefail OFF: a herdr CLI or jq
+# hiccup during startup must never stop sshd from coming up.
+set +e
 if [ ! -S "${HDR_SOCK}" ]; then
-  ( setsid herdr server >/var/log/herdr-server.log 2>&1 < /dev/null & )     || log "herdr server start failed"
+  ( setsid herdr server >/var/log/herdr-server.log 2>&1 < /dev/null & )
 fi
 ready=0
 for _ in $(seq 1 30); do
@@ -113,27 +116,29 @@ if [ "${ready}" != "1" ]; then
   log "WARNING: herdr server not ready (see /var/log/herdr-server.log)"
 else
   log "herdr server ready"
-  # Shell pane rooted at ~/artieeez for the user. herdr restores session
-  # topology from persisted state across pod restarts, so only create the pane
-  # when none at ~/artieeez exists yet (no stacking panes on every boot).
-  NEW_PANE="$(herdr pane list 2>/dev/null | jq -r '.result.panes[] | select(.cwd == "'"${HOME_DIR}"'/artieeez") | .pane_id' | head -1)"
+  sleep 2   # let the server finish restoring any persisted session state
+  # Shell pane rooted at ~/artieeez for the user. herdr restores topology from
+  # persisted state across pod restarts, so only create the pane when none at
+  # ~/artieeez exists yet (no stacking panes on every boot).
+  NEW_PANE="$(herdr pane list 2>/dev/null | jq -r '.result.panes[] | select(.cwd == "'"${HOME_DIR}"'/artieeez") | .pane_id' 2>/dev/null | head -1)"
   ROOT_PANE=""
   if [ -z "${NEW_PANE}" ]; then
-    ROOT_PANE="$(herdr pane list 2>/dev/null | jq -r '.result.panes[] | select(.cwd == "/root") | .pane_id' | head -1)"
+    ROOT_PANE="$(herdr pane list 2>/dev/null | jq -r '.result.panes[] | select(.cwd == "/root") | .pane_id' 2>/dev/null | head -1)"
     if [ -n "${ROOT_PANE}" ]; then
-      NEW_PANE="$(herdr pane split --pane "${ROOT_PANE}" --direction right --cwd "${HOME_DIR}/artieeez" 2>/dev/null | jq -r '.result.pane.pane_id // empty')"
+      NEW_PANE="$(herdr pane split --pane "${ROOT_PANE}" --direction right --cwd "${HOME_DIR}/artieeez" 2>/dev/null | jq -r '.result.pane.pane_id // empty' 2>/dev/null)"
     fi
   fi
   [ -n "${NEW_PANE}" ] && log "herdr shell pane ready at ~/artieeez (${NEW_PANE})"
   if [ "${AUTO_PI:-0}" = "1" ]; then
     TARGET="${NEW_PANE:-${ROOT_PANE}}"
-    if [ -n "${TARGET}" ]       && herdr agent start pi --kind pi --pane "${TARGET}" >/dev/null 2>&1; then
+    if [ -n "${TARGET}" ] && herdr agent start pi --kind pi --pane "${TARGET}" >/dev/null 2>&1; then
       log "pi agent started in herdr pane (AUTO_PI=1)"
     else
       log "pi agent start failed (run 'herdr' on the box to start it manually)"
     fi
   fi
 fi
+set -e
 
 log "starting sshd (key-only auth)"
 exec /usr/sbin/sshd -D -e
