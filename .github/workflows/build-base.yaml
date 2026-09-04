@@ -15,7 +15,10 @@ env:
   # Keep in sync with the ARGs in docker/base.Dockerfile. Bump the counter
   # suffix if you rebuild with the same ruby/tmux versions (e.g. OS update):
   # the app workflow pins this tag, so a new digest needs a new tag.
-  BASE_TAG: ruby-4.0.5_tmux-3.7c-2
+  # -3: republish after the -2 manifest (digest d204edb8) was reaped from
+  # OCIR, leaving -2 and latest dangling; the app workflow pins -2 and its
+  # builds failed at FROM until republished.
+  BASE_TAG: ruby-4.0.5_tmux-3.7c-3
 
 jobs:
   build:
