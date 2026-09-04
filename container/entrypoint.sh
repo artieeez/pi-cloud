@@ -100,6 +100,11 @@ mkdir -p "${HOME_DIR}/artieeez"
 # env (PI_CLOUD, DEEPINFRA_API_KEY). Attach later with `herdr` over ssh, or
 # `herdr --remote pi-cloud` from a device that has the herdr CLI.
 # ---------------------------------------------------------------------------
+# Export the login shell: entrypoint is not a login shell, so SHELL is unset
+# here. herdr's terminal.default_shell is empty, which would make every new
+# terminal pane resolve `$SHELL`, then /bin/sh -> dash (no tab completion).
+# root's passwd shell is /bin/bash; export it so clean deploys behave the same.
+export SHELL=/bin/bash
 HDR_SOCK="${HOME_DIR}/.config/herdr/herdr.sock"
 # The whole herdr section runs with errexit/pipefail OFF: a herdr CLI or jq
 # hiccup during startup must never stop sshd from coming up.
