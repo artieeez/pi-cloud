@@ -141,4 +141,14 @@ fi
 set -e
 
 log "starting sshd (key-only auth)"
-exec /usr/sbin/sshd -D -e
+# sshd runs as a CHILD, not via exec: entrypoint stays pid 1 so boot-spawned
+# children (the herdr server) are never disturbed by a pid-1 exec transition.
+/usr/sbin/sshd -D -e &
+SSHD_PID=$!
+trap 'kill "${SSHD_PID}" 2>/dev/null || true' TERM INT
+while kill -0 "${SSHD_PID}" 2>/dev/null; do
+  sleep 5
+done
+wait "${SSHD_PID}" 2>/dev/null || true
+log "sshd exited — container terminating"
+exit 0
