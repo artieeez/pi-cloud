@@ -113,14 +113,18 @@ if [ "${ready}" != "1" ]; then
   log "WARNING: herdr server not ready (see /var/log/herdr-server.log)"
 else
   log "herdr server ready"
-  # Give the user a shell pane rooted at ~/artieeez next to the auto-created
-  # default pane (which sits at /root). Fresh server per boot -> no buildup.
-  ROOT_PANE="$(herdr pane list 2>/dev/null | jq -r '.result.panes[] | select(.cwd == "/root") | .pane_id' | head -1)"
-  NEW_PANE=""
-  if [ -n "${ROOT_PANE}" ]; then
-    NEW_PANE="$(herdr pane split --pane "${ROOT_PANE}" --direction right --cwd "${HOME_DIR}/artieeez" 2>/dev/null | jq -r '.result.pane.pane_id // empty')"
-    [ -n "${NEW_PANE}" ] && log "herdr shell pane ready at ~/artieeez (${NEW_PANE})"
+  # Shell pane rooted at ~/artieeez for the user. herdr restores session
+  # topology from persisted state across pod restarts, so only create the pane
+  # when none at ~/artieeez exists yet (no stacking panes on every boot).
+  NEW_PANE="$(herdr pane list 2>/dev/null | jq -r '.result.panes[] | select(.cwd == "'"${HOME_DIR}"'/artieeez") | .pane_id' | head -1)"
+  ROOT_PANE=""
+  if [ -z "${NEW_PANE}" ]; then
+    ROOT_PANE="$(herdr pane list 2>/dev/null | jq -r '.result.panes[] | select(.cwd == "/root") | .pane_id' | head -1)"
+    if [ -n "${ROOT_PANE}" ]; then
+      NEW_PANE="$(herdr pane split --pane "${ROOT_PANE}" --direction right --cwd "${HOME_DIR}/artieeez" 2>/dev/null | jq -r '.result.pane.pane_id // empty')"
+    fi
   fi
+  [ -n "${NEW_PANE}" ] && log "herdr shell pane ready at ~/artieeez (${NEW_PANE})"
   if [ "${AUTO_PI:-0}" = "1" ]; then
     TARGET="${NEW_PANE:-${ROOT_PANE}}"
     if [ -n "${TARGET}" ]       && herdr agent start pi --kind pi --pane "${TARGET}" >/dev/null 2>&1; then
