@@ -9,6 +9,7 @@ A persistent, SSH-accessible dev box on the artr OKE cluster (oracle-cluster) fo
   manager for AI agents; `pi` is a recognized agent kind)
 - **kubectl v1.36.1** with an in-cluster kubeconfig (`pi-admin` SA, cluster-admin) —
   the box can inspect Argo apps, pods, and logs directly
+- **gh 2.100.0** (GitHub CLI) — PRs, issues, releases, and Actions from the box
 - **Ruby** via [mise](https://mise.jdx.dev) (4.0.5, matches `home`) — `mise` is `.ruby-version` aware
 - **herdr 0.8.x** — terminal workspace manager: workspaces/tabs/panes host pi agents
   and raw shells; a persistent server survives SSH disconnects

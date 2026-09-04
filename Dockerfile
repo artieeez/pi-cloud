@@ -5,8 +5,8 @@
 #
 # The heavy, rarely-changing content (node + OS deps, tmux, mise + Ruby) lives
 # in docker/base.Dockerfile (pi-cloud-base). This image carries only the
-# per-commit bits: pi agent version, kubectl, and container assets — so every
-# push builds a small delta instead of re-baking a ~1.1GB toolchain.
+# per-commit bits: pi agent version, kubectl, gh, and container assets — so
+# every push builds a small delta instead of re-baking a ~1.1GB toolchain.
 #
 # Build args: BASE_IMAGE defaults to the local base image name so
 #   docker build -f docker/base.Dockerfile -t pi-cloud-base .
@@ -23,6 +23,7 @@ ARG KUBECTL_VERSION=1.36.4
 ARG HERDR_VERSION=0.8.2
 # herdr-linux-aarch64 sha256 (release assets carry no checksum sidecar; pinned here)
 ARG HERDR_SHA256=f55610658e1c2e0d2aaef730b4b2ab885f7f8ba00285ab372bfb14f2e3d5b40d
+ARG GH_VERSION=2.100.0
 
 # pi coding agent (pinned; --ignore-scripts per upstream docs)
 RUN npm install -g --ignore-scripts "@earendil-works/pi-coding-agent@${PI_VERSION}"
@@ -42,6 +43,16 @@ RUN cd /tmp && \
     echo "${HERDR_SHA256}  herdr-linux-aarch64" | sha256sum -c - && \
     install -m 0755 herdr-linux-aarch64 /usr/local/bin/herdr && \
     rm -f herdr-linux-aarch64
+
+# gh (GitHub CLI, pinned) — verified against the release checksums file, which
+# carries one line per asset; grep the arm64 tarball line and sha256sum -c it.
+RUN cd /tmp && \
+    curl -fsSLO "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_arm64.tar.gz" && \
+    curl -fsSLO "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_checksums.txt" && \
+    grep "gh_${GH_VERSION}_linux_arm64.tar.gz\$" "gh_${GH_VERSION}_checksums.txt" | sha256sum -c - && \
+    tar -xzf "gh_${GH_VERSION}_linux_arm64.tar.gz" && \
+    install -m 0755 "gh_${GH_VERSION}_linux_arm64/bin/gh" /usr/local/bin/gh && \
+    rm -rf "gh_${GH_VERSION}_linux_arm64" "gh_${GH_VERSION}_linux_arm64.tar.gz" "gh_${GH_VERSION}_checksums.txt"
 
 # In-cluster kubeconfig (ServiceAccount-based, see docs). Baked OUTSIDE /root:
 # /root is the PVC mount at runtime and shadows image content — the entrypoint
