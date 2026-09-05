@@ -2,14 +2,24 @@ name: Promote pi-cloud image (manual deploy)
 
 # Deploys are deliberate: pushing to main only builds and pushes images.
 # Run this workflow (Actions -> "Promote pi-cloud image (manual deploy)" ->
-# "Run workflow") with the sha tag to deploy, e.g. sha-88a773e. It bumps
-# artr-gitops/apps/pi/deployment.yaml; Argo CD auto-syncs the pi app.
+# "Run workflow") to bump artr-gitops/apps/pi/deployment.yaml; Argo CD
+# auto-syncs the pi app.
+#
+# image_tag is the CI tag of the image to deploy: sha-<7 hex> = the short sha
+# of the pi-cloud commit that built it, e.g. sha-88a773e. Leave it EMPTY to
+# deploy the image built from the latest commit of the dispatched branch
+# (dispatch on main).
+# NOTE: build logs also print sha256:... hashes (OCI manifest digests and
+# Actions cache/artifact upload digests). Those are NOT deploy tags — paste
+# only a sha-xxxxxxxxx tag here.
 on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: "Image tag to deploy (e.g. sha-88a773e)"
-        required: true
+        description: >-
+          Image tag to deploy, sha-<7 hex> (e.g. sha-603844c). Leave empty to
+          deploy the image built from the latest commit on the dispatched branch.
+        required: false
         type: string
 
 permissions:
@@ -19,14 +29,24 @@ jobs:
   promote:
     runs-on: ubuntu-latest
     steps:
-      - name: Validate tag
+      - name: Resolve and validate image tag
+        id: resolve
         env:
-          IMAGE_TAG: ${{ inputs.image_tag }}
+          IMAGE_TAG_INPUT: ${{ inputs.image_tag }}
+          GITHUB_SHA: ${{ github.sha }}
         run: |
+          if [[ -n "${IMAGE_TAG_INPUT}" ]]; then
+            IMAGE_TAG="${IMAGE_TAG_INPUT}"
+          else
+            IMAGE_TAG="sha-$(echo "${GITHUB_SHA}" | cut -c1-7)"
+            echo "image_tag empty; deploying image built from the dispatched branch HEAD: ${IMAGE_TAG}"
+          fi
           if [[ ! "${IMAGE_TAG}" =~ ^sha-[0-9a-f]{7}$ ]]; then
-            echo "image_tag must match ^sha-[0-9a-f]{7}\$ (got: ${IMAGE_TAG})" >&2
+            echo "image_tag must be a CI tag sha-<7 hex digits>, e.g. sha-603844c" >&2
+            echo "got: '${IMAGE_TAG}'. sha256:... digests from build logs are not deploy tags." >&2
             exit 1
           fi
+          echo "image_tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Checkout artr-gitops
         uses: actions/checkout@v7
@@ -37,7 +57,7 @@ jobs:
 
       - name: Bump pi image tag
         env:
-          IMAGE: vcp.ocir.io/axtvnrdemzo7/pi-cloud:${{ inputs.image_tag }}
+          IMAGE: vcp.ocir.io/axtvnrdemzo7/pi-cloud:${{ steps.resolve.outputs.image_tag }}
         run: |
           FILE=gitops/apps/pi/deployment.yaml
           if [ ! -f "$FILE" ]; then
@@ -57,8 +77,8 @@ jobs:
           git config user.email "pi-cloud-ci-bot@users.noreply.github.com"
           git add apps/pi/deployment.yaml
           if git diff --staged --quiet; then
-            echo "No image change (already at ${{ inputs.image_tag }})"
+            echo "No image change (already at ${{ steps.resolve.outputs.image_tag }})"
             exit 0
           fi
-          git commit -m "chore(pi): promote image to ${{ inputs.image_tag }}"
+          git commit -m "chore(pi): promote image to ${{ steps.resolve.outputs.image_tag }}"
           git push
