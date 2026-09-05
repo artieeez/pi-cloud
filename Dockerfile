@@ -5,8 +5,9 @@
 #
 # The heavy, rarely-changing content (node + OS deps, tmux, mise + Ruby) lives
 # in docker/base.Dockerfile (pi-cloud-base). This image carries only the
-# per-commit bits: pi agent version, kubectl, gh, and container assets — so
-# every push builds a small delta instead of re-baking a ~1.1GB toolchain.
+# per-commit bits: pi agent version, kubectl, gh, playwright-cli, and container
+# assets — so every push builds a small delta instead of re-baking a ~1.1GB
+# toolchain.
 #
 # Build args: BASE_IMAGE defaults to the local base image name so
 #   docker build -f docker/base.Dockerfile -t pi-cloud-base .
@@ -24,6 +25,9 @@ ARG HERDR_VERSION=0.8.2
 # herdr-linux-aarch64 sha256 (release assets carry no checksum sidecar; pinned here)
 ARG HERDR_SHA256=f55610658e1c2e0d2aaef730b4b2ab885f7f8ba00285ab372bfb14f2e3d5b40d
 ARG GH_VERSION=2.100.0
+# @playwright/cli (browser automation CLI for pi UAT); its chromium headless
+# shell is baked at image build — see the install-browser RUN below.
+ARG PLAYWRIGHT_CLI_VERSION=0.1.19
 
 # pi coding agent (pinned; --ignore-scripts per upstream docs)
 RUN npm install -g --ignore-scripts "@earendil-works/pi-coding-agent@${PI_VERSION}"
@@ -53,6 +57,22 @@ RUN cd /tmp && \
     tar -xzf "gh_${GH_VERSION}_linux_arm64.tar.gz" && \
     install -m 0755 "gh_${GH_VERSION}_linux_arm64/bin/gh" /usr/local/bin/gh && \
     rm -rf "gh_${GH_VERSION}_linux_arm64" "gh_${GH_VERSION}_linux_arm64.tar.gz" "gh_${GH_VERSION}_checksums.txt"
+
+# playwright-cli (pinned, npm) — browser automation for pi UAT on the box.
+# The npm package is small; the chromium headless shell (~110MB download) is
+# the heavy part. Browsers bake under /opt, NOT the default ~/.cache under
+# /root: /root is the PVC mount and shadows image content at runtime, so a
+# browser baked there would vanish on first boot. PLAYWRIGHT_BROWSERS_PATH is
+# exported here (entrypoint/herdr inherit it) and re-exported in profile.d for
+# sshd sessions, which reset the container env.
+# Headless shell only: the box has no display, so headed chromium can never
+# run — --only-shell skips the full chromium (~200MB more). install-browser
+# delegates to playwright's `install`; --with-deps pulls the apt libs
+# (libnss3, libasound, fonts, ...) on bookworm.
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
+RUN npm install -g "@playwright/cli@${PLAYWRIGHT_CLI_VERSION}" && \
+    playwright-cli install-browser chromium --only-shell --with-deps && \
+    rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # In-cluster kubeconfig (ServiceAccount-based, see docs). Baked OUTSIDE /root:
 # /root is the PVC mount at runtime and shadows image content — the entrypoint

@@ -10,6 +10,9 @@ A persistent, SSH-accessible dev box on the artr OKE cluster (oracle-cluster) fo
 - **kubectl v1.36.1** with an in-cluster kubeconfig (`pi-admin` SA, cluster-admin) —
   the box can inspect Argo apps, pods, and logs directly
 - **gh 2.100.0** (GitHub CLI) — PRs, issues, releases, and Actions from the box
+- **playwright-cli 0.1.19** (@playwright/cli) + baked chromium headless shell —
+  browser automation for pi UAT on the box (`open`/`snapshot`/`screenshot`);
+  browsers live at `/opt/ms-playwright` (shell-only: the box has no display)
 - **Ruby** via [mise](https://mise.jdx.dev) (4.0.5, matches `home`) — `mise` is `.ruby-version` aware
 - **herdr 0.8.x** — terminal workspace manager: workspaces/tabs/panes host pi agents
   and raw shells; a persistent server survives SSH disconnects
@@ -30,7 +33,8 @@ one copy of the heavy layers:
   `vcp.ocir.io/axtvnrdemzo7/pi-cloud-base:ruby-4.0.5` (+ `latest`).
   (tmux was built into the base until the herdr switch; the next base rebuild drops it.)
 - **`pi-cloud`** (repo-root `Dockerfile`) — thin delta over the base: pi agent
-  version, kubectl, container assets (`container/`). Built on every push.
+  version, kubectl, gh, playwright-cli (+ chromium headless shell), container
+  assets (`container/`). Built on every push.
 
 ## How it's deployed
 

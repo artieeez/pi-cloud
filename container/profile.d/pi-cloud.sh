@@ -17,3 +17,7 @@ export PI_CLOUD=1
 # gh cli API token (same sealed pi-auth volume). gh reads GH_TOKEN
 # automatically; git pushes stay on the ssh deploy key.
 [ -r /secrets/pi/GH_TOKEN ] && export GH_TOKEN="$(cat /secrets/pi/GH_TOKEN)"
+
+# playwright-cli chromium headless shell (baked at /opt/ms-playwright during
+# image build). sshd resets the container env, so re-export for login shells.
+export PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
