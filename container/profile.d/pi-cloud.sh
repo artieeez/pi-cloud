@@ -13,3 +13,7 @@ export PI_CLOUD=1
 # Custom-provider env keys for models.json ($VAR resolution); read from the
 # sealed pi-auth volume (root-only box; never committed anywhere).
 [ -r /secrets/pi/DEEPINFRA_API_KEY ] && export DEEPINFRA_API_KEY="$(cat /secrets/pi/DEEPINFRA_API_KEY)"
+
+# gh cli API token (same sealed pi-auth volume). gh reads GH_TOKEN
+# automatically; git pushes stay on the ssh deploy key.
+[ -r /secrets/pi/GH_TOKEN ] && export GH_TOKEN="$(cat /secrets/pi/GH_TOKEN)"
