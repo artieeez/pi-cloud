@@ -18,6 +18,10 @@
 ARG NODE_VERSION=24
 ARG RUBY_VERSION=4.0.5
 ARG NEOVIM_VERSION=0.12.5
+# tree-sitter CLI version pinned deliberately: the nvim tree-sitter build needs it.
+# Do NOT bump past 0.25.6 — releases >= 0.26.0 ship prebuilt binaries that require
+# glibc 2.39 (Ubuntu 24.04 CI) and cannot run on bookworm (glibc 2.36).
+ARG TREE_SITTER_VERSION=0.25.6
 
 # ---------------------------------------------------------------------------
 # Build stage: mise-managed Ruby (matches the local dev workflow; .ruby-version
@@ -55,6 +59,7 @@ FROM node:${NODE_VERSION}-bookworm-slim
 # commands — re-declare the ones used here.
 ARG NEOVIM_VERSION
 ARG RUBY_VERSION
+ARG TREE_SITTER_VERSION
 
 # Runtime deps: git (pi tool), ripgrep (pi grep), sshd (entry point), sqlite3 +
 # libvips (home repo specs/assets), ruby runtime libs, jq (secret assembly), bash.
@@ -111,3 +116,22 @@ RUN curl -fsSL "https://github.com/neovim/neovim/releases/download/v${NEOVIM_VER
     mv /opt/nvim-linux-arm64 /opt/nvim && \
     rm -f /tmp/nvim.tar.gz
 ENV PATH="/opt/nvim/bin:${PATH}"
+
+# tree-sitter CLI — used by nvim-treesitter to build parsers. Preferring our own
+# pinned copy in /usr/local/bin also short-circuits LazyVim, which otherwise
+# auto-installs the LATEST tree-sitter-cli via Mason on first nvim run — that
+# latest binary is built against glibc 2.39 and fails on bookworm (glibc 2.36)
+# with "version `GLIBC_2.39' not found (required by tree-sitter)". Keep the
+# version in sync with lua/config/treesitter-cli.lua in the nvim-config repo.
+RUN set -eux; \
+    case "$(uname -m)" in \
+      aarch64|arm64) TS_ARCH=linux-arm64 ;; \
+      x86_64|amd64)  TS_ARCH=linux-x64 ;; \
+      *) echo "unsupported arch: $(uname -m)" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL "https://github.com/tree-sitter/tree-sitter/releases/download/v${TREE_SITTER_VERSION}/tree-sitter-${TS_ARCH}.gz" \
+      -o /tmp/tree-sitter.gz && \
+    gzip -d /tmp/tree-sitter.gz && \
+    install -m 0755 /tmp/tree-sitter /usr/local/bin/tree-sitter && \
+    rm -f /tmp/tree-sitter.gz && \
+    tree-sitter --version
