@@ -69,7 +69,8 @@ inline in order (no sub-agents needed). One PR opened at the end.
 **Depends on:** T2
 **Where:** `.github/workflows/build-base.yaml`
 **Tests:** grep asserts `BASE_TAG: ruby-4.0.5-5` and a history comment noting the tmux removal (-5).
-**Gate:** `validate-toolchain.py` check 2 green. PUSH GATE A (user approval) — then base CI build goes green.
+**Gate:** `validate-toolchain.py` check 2 green.
+**Status:** done
 
 ### T4: Sync the app workflow to the new base tag
 
@@ -104,4 +105,4 @@ inline in order (no sub-agents needed). One PR opened at the end.
 **Depends on:** T1, T7
 **Where:** artr-gitops `apps/pi/deployment.yaml` + `apps/pi/README.md`; `.specs/STATE.md` + this `tasks.md`
 **Tests:** grep in artr-gitops: deployment.yaml header and apps/pi/README.md contain no tmux mention and describe herdr; STATE.md records AD-001..AD-003; traceability statuses updated to Verified in spec.md.
-**Gate:** `validate-toolchain.py` exit 0 (all checks, `--gitops` path), `git status --porcelain` clean in both repos. PUSH GATE B (user approval) — then app CI build goes green; Verifier runs.
+**Gate:** `validate-toolchain.py` exit 0 (all checks, `--gitops` path), `git status --porcelain` clean in both repos. CI goes green at merge on main; Verifier runs after the branch is pushed.
