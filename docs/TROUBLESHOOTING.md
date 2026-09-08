@@ -109,6 +109,68 @@ needs an explicit rule to let users reach the tagged node.
 - Wrong key: the box uses `~/.ssh/id_ed25519` (the sealed deploy key) —
   `Host github.com` must not be overridden in `~/.ssh/config`.
 
+## 9. `bundle install` fails: native gem extconf — no C compiler (msgpack/bootsnap)
+
+**Symptom:** in a fresh worktree, `bundle install` dies compiling a native gem
+(e.g. msgpack 1.8.4, a bootsnap dependency) with *"extconf failed … The
+compiler failed to generate an executable file … You have to install
+development tools first"*. `which gcc cc make g++` all come back empty.
+
+**Cause:** `docker/base.Dockerfile` is multi-stage: `build-essential` is
+installed in the **build** stage (to compile tmux + Ruby), but multi-stage
+COPY only carries binaries out — the shipped base final stage was runtime
+packages only, so a fresh box has no C toolchain. This is true of **every**
+base tag ever published (the final stage apt list is unchanged since the
+pre-split Dockerfile); it is not a stale-tag/drift problem.
+
+**Fix (baked):** the base final stage now installs `build-essential`
+(>= ruby-4.0.5_tmux-3.7c-4). Runtime ad hoc, until that base is deployed:
+
+```bash
+apt-get update && apt-get install -y build-essential   # box has network + apt
+```
+
+Note the image `rm -rf`s the apt lists at build time, so any runtime
+`apt-get install` needs the `apt-get update` first. The mise-managed Ruby
+ships its headers (`/opt/mise/installs/ruby/4.0.5/include`), so compilers
+alone are enough — no extra ruby-dev needed.
+
+## 10. `playwright-cli open` fails: Chromium distribution 'chrome' not found / chrome-for-testing not installed
+
+**Symptom:** `playwright-cli open <url>` (no flags) errors with *"Chromium
+distribution 'chrome' is not found at /opt/google/chrome/chrome"*;
+`playwright-cli open --browser chromium <url>` errors with *"Browser
+chrome-for-testing is not installed; expected executable at
+/opt/ms-playwright/chromium-1243/chrome-linux-arm64/chrome"*.
+
+**Cause:** the CLI's default browser resolution never picks the baked
+headless shell. With no config it forces `channel: "chrome"` (system Google
+Chrome, not installed); `--browser chromium` forces
+`channel: "chrome-for-testing"` (the full chromium build, also not baked —
+`--only-shell` skips it). Only the chromium **headless shell**
+(`chromium_headless_shell-1243`) is baked.
+
+**Fix (baked):** the image ships `/opt/pi-cloud-playwright-cli.config.json`
+and sets `PLAYWRIGHT_MCP_CONFIG` (Dockerfile ENV + profile.d export for sshd
+sessions). The config pins `browser.browserName: "chromium"` with **no**
+channel, so playwright launches its headless-shell build (playwright's
+normal headless default), plus `chromiumSandbox: false` (container runs as
+root) and `headless: true`. `playwright-cli open <url>` then works out of
+the box; snapshot/close etc. run against the same session.
+
+Runtime workaround (until that image is deployed):
+
+```bash
+playwright-cli install-browser chrome-for-testing   # ~187MB download
+playwright-cli open --browser chromium <url>
+```
+
+Caveats: `--browser chromium|chrome` (and `--headed`) explicitly select
+builds that are **not** baked — keep using the default `open` on the box.
+Anything installed at runtime under `/opt/ms-playwright` lives in the
+container's writable layer and **vanishes on redeploy** (only `/root` is on
+the PVC); bake browser changes into the Dockerfile instead.
+
 ## Build/CI notes
 
 - The OCIR `update-gitops` job only bumps `apps/pi/deployment.yaml` when the
