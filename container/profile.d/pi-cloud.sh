@@ -19,5 +19,10 @@ export PI_CLOUD=1
 [ -r /secrets/pi/GH_TOKEN ] && export GH_TOKEN="$(cat /secrets/pi/GH_TOKEN)"
 
 # playwright-cli chromium headless shell (baked at /opt/ms-playwright during
-# image build). sshd resets the container env, so re-export for login shells.
+# image build) + global config pointing at it: the CLI defaults would look for
+# system Google Chrome (channel 'chrome') or the full chrome-for-testing build;
+# PLAYWRIGHT_MCP_CONFIG pins browserName=chromium with no channel so the baked
+# headless shell is used. sshd resets the container env, so re-export both for
+# login shells.
 export PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
+export PLAYWRIGHT_MCP_CONFIG=/opt/pi-cloud-playwright-cli.config.json
