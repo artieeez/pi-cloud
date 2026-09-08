@@ -44,11 +44,34 @@
   Own OCIR images are already immutable via `sha-<7>` git build tags. Revisit
   if a stricter posture is ever wanted.
 
+### AD-004: nvim-config (LazyVim) is a FORCED config repo on the box
+
+- **Status:** Decided (this feature)
+- **Decision:** `artieeez/nvim-config` (public LazyVim config) syncs at boot
+  into `/root/.config/nvim` with the same FORCED semantics as `dotagents` →
+  `/root/.agents`: reset to origin/main on boot, nvim runtime state under
+  `~/.local/{share,state}/nvim` on the PVC untouched, and box-side
+  `lazy-lock.json` edits (`:Lazy update`) reset unless committed + pushed.
+  Nothing config-relevant is baked into the image (`/root` is the PVC mount);
+  fonts are never shipped server-side — Nerd Font icons render client-side, so
+  the phone's Termux gets JetBrainsMono Nerd Font (`docs/PHONE-TERMUX.md` §6).
+- **Rationale:** the box exists for phone-friendly editing with the user's real
+  editor; the config is versioned separately (`~/.config/nvim` on the Mac, same
+  repo), so boot-sync keeps every (re)provisioned pod on nvim-config
+  origin/main and mirrors the Mac layout exactly.
+
 ## Handoff snapshot
 
-- **Feature in flight:** `.specs/features/toolchain-unification/` — implemented on
-  branch `chore/toolchain-unification` (commits fa90af8…9d71558 + gitops c00b138);
-  awaiting Verifier, then push + PR, then user merge/promote.
-- **Repo state:** pi-cloud on `chore/toolchain-unification`, artr-gitops on `main` (c00b138).
-- **External action pending:** install the hosted Renovate GitHub App on
-  artieeez/pi-cloud (may already be org-wide — verify at execution).
+- **Feature in flight:** `.specs/features/lazyvim-on-box/` on branch
+  `feat/lazyvim-on-box` (nvim-config boot sync → `/root/.config/nvim` +
+  Termux Nerd Font docs + AD-004). Commits pending; then Verifier, then push +
+  PR, then user merge/promote.
+- **Live box (applied, persists on the `/root` PVC):** nvim-config cloned at
+  `/root/.config/nvim` on origin/main and LazyVim plugins installed (first-run
+  headless sync). The updated `sync-configs.sh` reaches pods only after the
+  image rebuild + rollout that follows the PR merge.
+- **Phone (applied):** Termux font = JetBrainsMono Nerd Font Regular
+  (`~/.termux/font.ttf`, sha256 matches the Mac file), reloaded; glyphs render.
+- **Repo state:** pi-cloud on `feat/lazyvim-on-box` (from `main`); no other
+  branches in flight.
+- **External action pending:** none — push/PR/deploy waits for user go-ahead.
