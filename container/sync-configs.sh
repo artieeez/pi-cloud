@@ -6,9 +6,9 @@
 # on — the box still boots on sealed auth + built-in defaults.
 #
 # Groups (see docs/BOOT-SYNC.md):
-#   FORCED   pi-config  -> /root/.pi/agent   (reset to origin/main; ignored
-#            dotagents  -> /root/.agents      runtime files survive: auth.json,
-#                                             sessions/, npm/, trust.json, ...)
+#   FORCED   pi-config   -> /root/.pi/agent   (reset to origin/main; ignored
+#            dotagents   -> /root/.agents      runtime files survive: auth.json,
+#            nvim-config -> /root/.config/nvim  sessions/, npm/, trust.json, ...)
 #   NON-FORCED artr-gitops pi-cloud oracle-cluster home home-knowledge
 #            -> /root/artieeez/<name>        clone, else fetch + ff-only pull
 #                                             (local box work is never clobbered)
@@ -64,6 +64,10 @@ fi
 
 # dotagents (skills -> ~/.agents)
 sync_forced "${AGENTS_DIR}" "${ORG}/dotagents.git" || true
+
+# nvim-config (LazyVim editor config -> ~/.config/nvim; nvim runtime state
+# lives in ~/.local/{share,state}/nvim on the PVC and is untouched by sync)
+sync_forced "${HOME_DIR}/.config/nvim" "${ORG}/nvim-config.git" || true
 
 # ---------------------------------------------------------------------------
 # NON-FORCED: work repos under /root/artieeez (mirrors Mac ~/artieeez).
