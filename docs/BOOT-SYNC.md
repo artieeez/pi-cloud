@@ -11,9 +11,11 @@ On every pi-cloud pod boot, before sshd starts:
 
 1. **pi-config** (`artieeez/pi-config`, private) → managed clone at `/root/.pi/agent`
 2. **dotagents** (`artieeez/dotagents`, private) → managed clone at `/root/.agents`
-3. **work repos** → `/root/artieeez/<name>` mirroring the Mac `~/artieeez` layout:
+3. **nvim-config** (`artieeez/nvim-config`, public LazyVim config) → managed
+   clone at `/root/.config/nvim`
+4. **work repos** → `/root/artieeez/<name>` mirroring the Mac `~/artieeez` layout:
    `artr-gitops`, `pi-cloud`, `oracle-cluster`, `home`, `home-knowledge`
-4. `npm install` in `/root/.pi/agent` (extension deps)
+5. `npm install` in `/root/.pi/agent` (extension deps)
 
 Auth stays as today: entrypoint merges sealed `/secrets/pi/auth.json` into
 `~/.pi/agent/auth.json` (gitignored in pi-config, so sync can't clobber it).
@@ -25,6 +27,7 @@ pi-config, self-gated on `PI_CLOUD=1`) instead of a pi-cloud-custom AGENTS.md.
 ```
 /root/.pi/agent        pi-config clone (config repos: FORCED sync — reset to origin/main)
 /root/.agents          dotagents clone (skills; FORCED sync)
+/root/.config/nvim     nvim-config clone (LazyVim editor config; FORCED sync)
 /root/.ssh             assembled from /secrets (host keys, authorized_keys, deploy key, known_hosts)
 /root/.pi/agent/auth.json   gitignored — merged from sealed secrets at boot
 /root/artieeez/
@@ -66,6 +69,15 @@ Then `npm install --no-audit --no-fund` (incremental; no-op when up to date).
 
 Same sequence with `artieeez/dotagents`. Preserves ignored `.pi/tasks/`; the
 untracked `matt-tree.json` never exists on the box.
+
+### nvim-config → `/root/.config/nvim` (forced)
+
+Same sequence with `artieeez/nvim-config` (public repo). Neovim runtime state
+lives OUTSIDE the config clone (`~/.local/share/nvim` for plugins/Mason,
+`~/.local/state/nvim` for logs), so the reset never touches installed plugins;
+on a fresh PVC the first `nvim` launch bootstraps lazy.nvim and installs
+plugins from the network (one-time, needs internet). Box-side `lazy-lock.json`
+edits (e.g. `:Lazy update`) reset at boot — expected; commit + push them.
 
 ### Work repos → `/root/artieeez/<name>` (non-forced)
 
@@ -127,6 +139,7 @@ git -C /root/artieeez/<name> merge -q --ff-only origin/main 2>/dev/null || true
 ```bash
 ssh pi-cloud 'git -C ~/.pi/agent log --oneline -1'       # == pi-config main
 ssh pi-cloud 'git -C ~/.agents log --oneline -1'          # == dotagents main
+ssh pi-cloud 'git -C ~/.config/nvim log --oneline -1'     # == nvim-config main
 ssh pi-cloud 'ls /root/artieeez'                          # the 5 repos
 ssh pi-cloud 'jq keys ~/.pi/agent/auth.json'              # deepseek + google + opencode-go once google is sealed
 kubectl get pod -n pi -o jsonpath='{.spec.containers[0].env}' | grep PI_CLOUD

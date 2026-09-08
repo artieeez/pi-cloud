@@ -76,6 +76,50 @@ $TERMUX "ssh pi-cloud 'herdr status'"
 > panes — reattach with `herdr` again later. (A native herdr client in Termux is not
 > set up yet — the in-ssh TUI is the phone path.)
 
+## 6. Nerd Font for icons (nvim / herdr glyphs)
+
+LazyVim on the box (dashboard, statusline, git signs, pickers) and herdr's TUI
+draw Nerd Font icons **client-side**: the ssh client's terminal renders them,
+so Termux needs a patched font or glyphs show as empty boxes (tofu). The box
+itself ships no font (by design — see docs/TROUBLESHOOTING.md §11).
+
+This installs **JetBrainsMono Nerd Font Regular** — the same family as the Mac
+terminal — as Termux's font. Two routes:
+
+a. **ADB push from the Mac (recommended)** — byte-identical to your Mac file
+   and works even when the phone has no public DNS (github.com did not resolve
+   from Termux during setup, so the in-Termux download below is only an
+   alternative). Android's scoped storage also blocks reading `/sdcard` from
+   `run-as`, so stage via `/data/local/tmp`:
+
+```bash
+adb shell 'chmod 755 /data/local/tmp'                 # let the app uid traverse
+adb push ~/Library/Fonts/JetBrainsMonoNerdFont-Regular.ttf /data/local/tmp/font.ttf
+adb shell 'run-as com.termux sh -c "mkdir -p /data/data/com.termux/files/home/.termux && cp /data/local/tmp/font.ttf /data/data/com.termux/files/home/.termux/font.ttf"'
+adb shell 'rm -f /data/local/tmp/font.ttf && chmod 771 /data/local/tmp'   # clean up
+
+# verify: checksums must match (the Mac file is the same bytes)
+shasum -a 256 ~/Library/Fonts/JetBrainsMonoNerdFont-Regular.ttf
+adb shell 'run-as com.termux sha256sum /data/data/com.termux/files/home/.termux/font.ttf'
+```
+
+b. **In-Termux download** — only when the phone has public internet:
+
+```bash
+$TERMUX "curl -fsSL -o ~/.termux/font.ttf https://github.com/ryanoasis/nerd-fonts/raw/master/patched-fonts/JetBrainsMono/Regular/JetBrainsMonoNerdFont-Regular.ttf"
+```
+
+Then apply (Termux must be running in the foreground for the reload broadcast):
+
+```bash
+adb shell 'input keyevent KEYCODE_WAKEUP; wm dismiss-keyguard; am start -n com.termux/.app.TermuxActivity'
+adb shell 'run-as com.termux env PREFIX=/data/data/com.termux/files/usr HOME=/data/data/com.termux/files/home PATH=/data/data/com.termux/files/usr/bin:/system/bin:/system/xbin /data/data/com.termux/files/usr/bin/bash -c termux-reload-settings'
+```
+
+Verify visually: print a glyph row in a Termux session
+(`printf '\uf718 \ue0b0 \uf85a \uf4a2\n'`) — patched glyphs render as icons
+(git branch, triangles, …), not empty rectangles.
+
 ## Notes / gotchas
 
 - **"Compatibility issue" dialog (libtermux.so / libtermux-bootstrap.so,
@@ -88,3 +132,6 @@ $TERMUX "ssh pi-cloud 'herdr status'"
 - The phone key (`termux-s23@artr`) is sealed into the box — wipe-and-reinstall
   of the phone just needs key rotation (`scripts/seal-pi-auth.sh` is only for the
   LLM key; the ssh rotation flow is in artr-gitops `apps/pi/README.md`).
+- `termux-reload-settings` returns rc=0 only when the Termux app is running; if
+  a reload seems ineffective, force-stop Termux (it re-reads `font.ttf` when a
+  session starts). `cp` keeps app ownership, so no `chmod` on `font.ttf` needed.
