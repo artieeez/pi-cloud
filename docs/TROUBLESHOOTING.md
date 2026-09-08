@@ -3,24 +3,7 @@
 Every issue below was hit and fixed while bringing the box up live on the artr
 cluster. Symptom → cause → fix, so the next incident is minutes, not hours.
 
-## 1. Pod crash-loops: `tmux: error while loading shared libraries: libevent_core-2.1.so.7`
-
-**Cause:** the final image shipped only runtime package names without the tmux
-runtime libs, and Debian (bookworm) *merges* libevent 2.1 into a single
-`libevent-2.1.so.7` while tmux links the classic split sonames
-`libevent_core-2.1.so.7` / `libevent_extra-2.1.so.7`.
-
-**Fix (docker/base.Dockerfile, final stage):**
-
-```dockerfile
-RUN apt-get install -y libevent-2.1-7 libncurses6 && \
-    ln -s libevent-2.1.so.7.0.1 /usr/lib/$(uname -m)-linux-gnu/libevent_core-2.1.so.7 && \
-    ln -s libevent-2.1.so.7.0.1 /usr/lib/$(uname -m)-linux-gnu/libevent_extra-2.1.so.7
-```
-
-Verify inside the image: `ldd /opt/tmux/bin/tmux | grep "not found"` → empty.
-
-## 0b. Host key changed on every image rebuild (`REMOTE HOST IDENTIFICATION HAS CHANGED`)
+## 1. Host key changed on every image rebuild (`REMOTE HOST IDENTIFICATION HAS CHANGED`)
 
 **Cause:** Debian's openssh-server postinst runs `ssh-keygen -A` at image build,
 baking fresh host keys into `/etc/ssh/ssh_host_*`. sshd used those (default
@@ -64,13 +47,14 @@ but every login fails with `Permission denied (publickey)`.
 **Fix:** `container/entrypoint.sh` runs `chmod 700 /root` before starting sshd.
 Live patch while a fix ships: `kubectl exec ... chmod 700 /root`.
 
-## 4. SSH login works but `tmux: command not found`
+## 4. SSH login shells miss the box toolchain (`mise`, `nvim` not on PATH)
 
 **Cause:** sshd does **not** inherit the container's `ENV PATH`; login shells get
 the minimal `/etc/login.defs` PATH.
 
 **Fix:** `container/profile.d/pi-cloud.sh` (copied to `/etc/profile.d/`) exports
-`/opt/tmux/bin`, mise binary/shims, and `MISE_*` vars for login shells.
+`/opt/nvim/bin`, `/opt/mise-root/local/bin`, `/opt/mise/shims`, and the `MISE_*`
+vars for login shells.
 
 ## 5. Phone: `ssh: Could not resolve hostname pi.tailc16433.ts.net`
 
@@ -117,14 +101,14 @@ compiler failed to generate an executable file … You have to install
 development tools first"*. `which gcc cc make g++` all come back empty.
 
 **Cause:** `docker/base.Dockerfile` is multi-stage: `build-essential` is
-installed in the **build** stage (to compile tmux + Ruby), but multi-stage
+installed in the **build** stage (to compile Ruby), but multi-stage
 COPY only carries binaries out — the shipped base final stage was runtime
 packages only, so a fresh box has no C toolchain. This is true of **every**
 base tag ever published (the final stage apt list is unchanged since the
 pre-split Dockerfile); it is not a stale-tag/drift problem.
 
 **Fix (baked):** the base final stage now installs `build-essential`
-(>= ruby-4.0.5_tmux-3.7c-4). Runtime ad hoc, until that base is deployed:
+(>= ruby-4.0.5-5). Runtime ad hoc, until that base is deployed:
 
 ```bash
 apt-get update && apt-get install -y build-essential   # box has network + apt

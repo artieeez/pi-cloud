@@ -13,7 +13,7 @@ env:
   OCIR_NAMESPACE: axtvnrdemzo7
   IMAGE_NAME: pi-cloud-base
   # Keep in sync with the ARGs in docker/base.Dockerfile. Bump the counter
-  # suffix if you rebuild with the same ruby/tmux versions (e.g. OS update):
+  # suffix if you rebuild with the same ruby versions (e.g. OS update):
   # the app workflow pins this tag, so a new digest needs a new tag.
   # -3: republish after the -2 manifest (digest d204edb8) was reaped from
   # OCIR, leaving -2 and latest dangling; the app workflow pins -2 and its
@@ -21,7 +21,9 @@ env:
   # -4: base now ships the C toolchain (build-essential) in the final stage
   # so native-gem `bundle install` works on a fresh box (msgpack/bootsnap);
   # the app workflow tag is synced in a follow-up commit (see f0bb0b2).
-  BASE_TAG: ruby-4.0.5_tmux-3.7c-4
+  # -5: base drops tmux (herdr replaced it as the pane host); the app workflow
+  # syncs via the same PR and waits for this manifest before building.
+  BASE_TAG: ruby-4.0.5-5
 
 jobs:
   build:

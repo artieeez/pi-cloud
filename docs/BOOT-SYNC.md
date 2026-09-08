@@ -90,8 +90,9 @@ git -C /root/artieeez/<name> merge -q --ff-only origin/main 2>/dev/null || true
 4. ~No baked-template fallback~ (decision: DELETE) — `settings.json`/`AGENTS.md`
    stop being shipped in the image; a network-less first boot simply runs pi
    on its built-in defaults until a sync succeeds.
-5. tmux session `pi` starts in `/root/artieeez` (was `/workspace`) — pi's
-   cwd context then mirrors the Mac's `~/artieeez`.
+5. herdr server starts with a shell pane rooted at `/root/artieeez` (was
+   `/workspace`) — pi's cwd context then mirrors the Mac's `~/artieeez`
+   (`AUTO_PI=1` opens a pi agent pane inside it).
 
 ## Image / deployment changes (pi-cloud + artr-gitops)
 
@@ -100,10 +101,10 @@ git -C /root/artieeez/<name> merge -q --ff-only origin/main 2>/dev/null || true
 - pi-cloud `Dockerfile`: `WORKDIR /root/artieeez` (mkdir in image),
   `COPY container/sync-configs.sh`, drop `/workspace` creation claims.
 - **`/root` is the PVC mount and shadows image content** — nothing config-relevant
-  is baked under `/root` anymore: kubeconfig (`container/kubeconfig.yaml`) and
-  `tmux.conf` are baked to `/opt/pi-cloud-*` and seeded by the entrypoint into
-  `/root/.kube/config` + `/root/.tmux.conf` when absent (fixes the box's
-  silently-broken kubectl: it had no kubeconfig, defaulting to localhost:8080).
+  is baked under `/root` anymore: kubeconfig (`container/kubeconfig.yaml`) is
+  baked to `/opt/pi-cloud-kubeconfig.yaml` and seeded by the entrypoint into
+  `/root/.kube/config` when absent (fixes the box's silently-broken kubectl:
+  it had no kubeconfig, defaulting to localhost:8080).
 - `container/pi-agent/` (baked `settings.json` + `AGENTS.md`): **deleted** —
   real global AGENTS comes from pi-config; env context from the extension;
   settings from the repo. Dockerfile stops COPYing it; entrypoint drops the
@@ -136,8 +137,8 @@ ssh pi-cloud 'ls ~/.pi/agent/extensions'                  # hermes-acp/worktree/
 
 1. Forced sync on config repos (`pi-config`, `dotagents`), never on the 5 work
    repos — **assumed yes**.
-2. tmux/pi default cwd `/root/artieeez` and retiring the `/workspace` name —
-   **assumed yes** (docs/template updates included).
+2. herdr/pi default cwd `/root/artieeez` (retiring the tmux-era `/workspace`
+   layout) — **assumed yes** (docs/template updates included).
 3. Baked `/opt/pi-agent` files — **decision: delete, no fallback**.
 4. `google` sealing: run `./reseal-pi-auth.sh google` (script now committed to
    `artr-gitops` at `apps/pi/reseal-pi-auth.sh`, `0c0d823`).

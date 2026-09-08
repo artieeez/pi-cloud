@@ -1,0 +1,64 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits"
+  ],
+  "timezone": "America/Sao_Paulo",
+  "schedule": ["before 6am on Monday"],
+  "labels": ["dependencies"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["Dockerfile"],
+      "matchStrings": ["ARG HERDR_VERSION=(?<currentValue>\\S+)"],
+      "datasourceTemplate": "github-releases",
+      "packageNameTemplate": "herdrdev/herdr",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["Dockerfile"],
+      "matchStrings": ["ARG KUBECTL_VERSION=(?<currentValue>\\S+)"],
+      "datasourceTemplate": "github-releases",
+      "packageNameTemplate": "kubernetes/kubernetes",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["Dockerfile"],
+      "matchStrings": ["ARG GH_VERSION=(?<currentValue>\\S+)"],
+      "datasourceTemplate": "github-releases",
+      "packageNameTemplate": "cli/cli",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["Dockerfile"],
+      "matchStrings": ["ARG PI_VERSION=(?<currentValue>\\S+)"],
+      "datasourceTemplate": "npm",
+      "packageNameTemplate": "@earendil-works/pi-coding-agent"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["Dockerfile"],
+      "matchStrings": ["ARG PLAYWRIGHT_CLI_VERSION=(?<currentValue>\\S+)"],
+      "datasourceTemplate": "npm",
+      "packageNameTemplate": "@playwright/cli"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Own OCIR base image — published by build-base.yaml, never bumped by Renovate. Pin policy is tag-based (AD-003): digest pinning deliberately stays off.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["/^vcp\\.ocir\\.io\\//"],
+      "enabled": false
+    },
+    {
+      "description": "kubectl tracks the OKE cluster server minor (currently 1.36): only patch updates within that minor are proposed. Extend this range when the cluster is upgraded (check: kubectl version -o json).",
+      "matchPackageNames": ["kubernetes/kubernetes"],
+      "allowedVersions": "/^1\\.36\\./"
+    }
+  ]
+}
