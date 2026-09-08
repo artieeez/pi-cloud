@@ -18,7 +18,10 @@ env:
   # -3: republish after the -2 manifest (digest d204edb8) was reaped from
   # OCIR, leaving -2 and latest dangling; the app workflow pins -2 and its
   # builds failed at FROM until republished.
-  BASE_TAG: ruby-4.0.5_tmux-3.7c-3
+  # -4: base now ships the C toolchain (build-essential) in the final stage
+  # so native-gem `bundle install` works on a fresh box (msgpack/bootsnap);
+  # the app workflow tag is synced in a follow-up commit (see f0bb0b2).
+  BASE_TAG: ruby-4.0.5_tmux-3.7c-4
 
 jobs:
   build:
