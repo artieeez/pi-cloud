@@ -155,6 +155,22 @@ Anything installed at runtime under `/opt/ms-playwright` lives in the
 container's writable layer and **vanishes on redeploy** (only `/root` is on
 the PVC); bake browser changes into the Dockerfile instead.
 
+## 11. Phone: nvim / herdr icons show as empty boxes (tofu)
+
+**Cause:** Nerd Font icons are drawn by the **client** terminal, not the box.
+Termux's default font has no Nerd Font PUA glyphs, so LazyVim's
+statusline/dashboard and herdr's TUI icons render as empty rectangles. The box
+is innocent — no font is baked there by design (icons are a client-side
+concern; only the ssh client's terminal font matters).
+
+**Diagnose:** in Termux, print a glyph row (`printf '\uf718 \ue0b0 \uf85a
+\uf4a2\n'`): empty boxes → Termux font is not patched; icons → the font is
+fine and the problem is elsewhere.
+
+**Fix:** install a Nerd Font in Termux — JetBrainsMono Nerd Font Regular (same
+family as the Mac) → `~/.termux/font.ttf` + `termux-reload-settings`:
+[docs/PHONE-TERMUX.md](PHONE-TERMUX.md) §6.
+
 ## Build/CI notes
 
 - The OCIR `update-gitops` job only bumps `apps/pi/deployment.yaml` when the
