@@ -112,14 +112,14 @@ tofu) in a terminal and in the box's LazyVim UI over ssh.
 
 | Requirement ID | Story | Phase | Status |
 | -------------- | ----- | ----- | ------ |
-| LVB-01 | P0: LazyVim provisioned on the box; phone renders its icons | Execute | implementing |
-| LVB-02 | P0: LazyVim provisioned on the box; phone renders its icons | Execute | implementing |
-| LVB-03 | P0: LazyVim provisioned on the box; phone renders its icons | Execute | implementing |
-| LVB-04 | P0: LazyVim provisioned on the box; phone renders its icons | Execute | implementing |
-| LVB-05 | P0: LazyVim provisioned on the box; phone renders its icons | Execute | implementing |
-| LVB-06 | P0: LazyVim provisioned on the box; phone renders its icons | Execute | implementing |
-| LVB-07 | P0: LazyVim provisioned on the box; phone renders its icons | Execute | implementing |
-| LVB-08 | P0: LazyVim provisioned on the box; phone renders its icons | Execute | implementing |
+| LVB-01 | P0: LazyVim provisioned on the box; phone renders its icons | Execute | verified |
+| LVB-02 | P0: LazyVim provisioned on the box; phone renders its icons | Execute | verified |
+| LVB-03 | P0: LazyVim provisioned on the box; phone renders its icons | Execute | verified |
+| LVB-04 | P0: LazyVim provisioned on the box; phone renders its icons | Execute | verified |
+| LVB-05 | P0: LazyVim provisioned on the box; phone renders its icons | Execute | verified |
+| LVB-06 | P0: LazyVim provisioned on the box; phone renders its icons | Execute | verified |
+| LVB-07 | P0: LazyVim provisioned on the box; phone renders its icons | Execute | verified |
+| LVB-08 | P0: LazyVim provisioned on the box; phone renders its icons | Execute | verified |
 
 **Coverage:** 8 total, 8 mapped, 0 unmapped
 

@@ -135,8 +135,9 @@ def main():
     if state is None:
         results.append(check(8, False, ".specs/STATE.md missing"))
     else:
+        body = state.split("### AD-004", 1)
         has_ad = "### AD-004" in state and "nvim-config (LazyVim) is a FORCED config repo" in state
-        has_status = "Status:" in state.split("### AD-004", 1)[1][:200]
+        has_status = len(body) > 1 and "Status:" in body[1][:200]
         results.append(check(8, has_ad and has_status, "AD-004 entry missing"))
 
     passed = sum(1 for r in results if r)
