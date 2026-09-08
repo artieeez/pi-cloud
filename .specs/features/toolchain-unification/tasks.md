@@ -103,6 +103,7 @@ inline in order (no sub-agents needed). One PR opened at the end.
 **Where:** `README.md`, `Dockerfile`, `docs/` (present-tense tmux statements only)
 **Tests:** README states tmux was removed; no touched file describes tmux as installed or "pending removal"; historical notes untouched where they are clearly past-tense.
 **Gate:** `validate-toolchain.py` check 8 green.
+**Status:** done
 
 ### T8: gitops companion cleanup + close-out gate
 

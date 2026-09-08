@@ -23,8 +23,7 @@ A persistent, SSH-accessible dev box on the artr OKE cluster (oracle-cluster) fo
   and raw shells; a persistent server survives SSH disconnects
 - **sshd** (key-only, root, hardened) — the only entry point, port 22
 - **neovim 0.12.5** (official arm64 build) — sshd + nvim = phone-friendly editing
-- ~~tmux~~ — removed from the boot flow (the base image still carries the binary
-  until the next base rebuild; herdr replaces it)
+- ~~tmux~~ — removed in the ruby-4.0.5-5 base rebuild; herdr hosts the panes
 - git, ripgrep, sqlite3, libvips, jq, Node 24
 
 ## Two images: base + app
@@ -36,8 +35,8 @@ one copy of the heavy layers:
   toolchain, `build-essential`, for runtime native-gem builds) + neovim
   + mise/Ruby. Rebuilt rarely (ruby/node/OS bumps) by `build-base.yaml`
   (path-triggered push + `workflow_dispatch`); pushed as
-  `vcp.ocir.io/axtvnrdemzo7/pi-cloud-base:ruby-4.0.5` (+ `latest`).
-  (tmux was built into the base until the herdr switch; the next base rebuild drops it.)
+  `vcp.ocir.io/axtvnrdemzo7/pi-cloud-base:ruby-4.0.5-5` (+ `latest`).
+  (tmux was removed in the ruby-4.0.5-5 rebuild — herdr hosts the panes.)
 - **`pi-cloud`** (repo-root `Dockerfile`) — thin delta over the base: pi agent
   version, kubectl, gh, playwright-cli (+ chromium headless shell), container
   assets (`container/`). Built on every push.

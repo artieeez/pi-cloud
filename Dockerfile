@@ -3,7 +3,7 @@
 
 # pi.dev cloud box — thin APP image over the stable base.
 #
-# The heavy, rarely-changing content (node + OS deps, tmux, mise + Ruby) lives
+# The heavy, rarely-changing content (node + OS deps, mise + Ruby) lives
 # in docker/base.Dockerfile (pi-cloud-base). This image carries only the
 # per-commit bits: pi agent version, kubectl, gh, playwright-cli, and container
 # assets — so every push builds a small delta instead of re-baking a ~1.1GB
