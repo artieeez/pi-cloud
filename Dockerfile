@@ -65,11 +65,19 @@ RUN cd /tmp && \
 # browser baked there would vanish on first boot. PLAYWRIGHT_BROWSERS_PATH is
 # exported here (entrypoint/herdr inherit it) and re-exported in profile.d for
 # sshd sessions, which reset the container env.
-# Headless shell only: the box has no display, so headed chromium can never
-# run — --only-shell skips the full chromium (~200MB more). install-browser
-# delegates to playwright's `install`; --with-deps pulls the apt libs
-# (libnss3, libasound, fonts, ...) on bookworm.
-ENV PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
+#
+# Headless shell only, via PLAYWRIGHT_MCP_CONFIG: with no config the CLI
+# forces channel 'chrome' (system Google Chrome at /opt/google/chrome/chrome),
+# and `--browser chromium` forces channel 'chrome-for-testing' (the full
+# chromium build) — neither is baked here. The global config shipped below
+# pins browserName=chromium with NO channel, so playwright launches its
+# chromium headless shell build — the one baked by --only-shell — and the box
+# has no display anyway. chromiumSandbox:false because the container runs as
+# root. Validated on the box: `playwright-cli open <url>` then snapshot/close
+# work end-to-end with only chromium_headless_shell-1243 present.
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright \
+    PLAYWRIGHT_MCP_CONFIG=/opt/pi-cloud-playwright-cli.config.json
+COPY container/playwright-cli.config.json /opt/pi-cloud-playwright-cli.config.json
 RUN npm install -g "@playwright/cli@${PLAYWRIGHT_CLI_VERSION}" && \
     playwright-cli install-browser chromium --only-shell --with-deps && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives

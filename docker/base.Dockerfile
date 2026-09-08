@@ -74,6 +74,13 @@ ARG RUBY_VERSION
 # libevent-2.1-7/libncurses6: runtime libs for the tmux built in the build stage.
 # Debian merges libevent into a single libevent-2.1.so.7;  tmux links the classic
 # libevent_core/libevent_extra split sonames -> provide compat symlinks.
+#
+# build-essential: C toolchain (~230MB: gcc/g++/make/libc6-dev/binutils) for
+# compiling native Ruby gems AT RUNTIME on the box (e.g. msgpack via bootsnap
+# in `home` bundle installs). The build stage above installs the same tools to
+# compile tmux/ruby, but multi-stage COPY only carries binaries out of that
+# stage — nothing from it reaches this image, so without this line a fresh box
+# has no cc/make and every native-gem `bundle install` fails at extconf.
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
       bash ca-certificates curl git ripgrep \
@@ -81,7 +88,8 @@ RUN apt-get update -qq && \
       sqlite3 libvips42 jq \
       libstdc++6 \
       libyaml-0-2 libssl3 zlib1g libffi8 libgmp10 libreadline8 \
-      libevent-2.1-7 libncurses6 && \
+      libevent-2.1-7 libncurses6 \
+      build-essential && \
     ln -s libevent-2.1.so.7.0.1 /usr/lib/$(uname -m)-linux-gnu/libevent_core-2.1.so.7 && \
     ln -s libevent-2.1.so.7.0.1 /usr/lib/$(uname -m)-linux-gnu/libevent_extra-2.1.so.7 && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives && \

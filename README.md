@@ -12,8 +12,13 @@ A persistent, SSH-accessible dev box on the artr OKE cluster (oracle-cluster) fo
 - **gh 2.100.0** (GitHub CLI) — PRs, issues, releases, and Actions from the box
 - **playwright-cli 0.1.19** (@playwright/cli) + baked chromium headless shell —
   browser automation for pi UAT on the box (`open`/`snapshot`/`screenshot`);
-  browsers live at `/opt/ms-playwright` (shell-only: the box has no display)
-- **Ruby** via [mise](https://mise.jdx.dev) (4.0.5, matches `home`) — `mise` is `.ruby-version` aware
+  browsers live at `/opt/ms-playwright` (shell-only: the box has no display).
+  A global CLI config (`PLAYWRIGHT_MCP_CONFIG`) makes `open` use the baked
+  headless shell; the CLI's own defaults would look for system Chrome or the
+  full chrome-for-testing build (see docs/TROUBLESHOOTING.md)
+- **Ruby** via [mise](https://mise.jdx.dev) (4.0.5, matches `home`) — `mise` is
+  `.ruby-version` aware; native-gem `bundle install` works out of the box (the
+  base bakes `build-essential`)
 - **herdr 0.8.x** — terminal workspace manager: workspaces/tabs/panes host pi agents
   and raw shells; a persistent server survives SSH disconnects
 - **sshd** (key-only, root, hardened) — the only entry point, port 22
@@ -27,8 +32,9 @@ A persistent, SSH-accessible dev box on the artr OKE cluster (oracle-cluster) fo
 The image is split so per-commit builds stay small and the cluster node stores
 one copy of the heavy layers:
 
-- **`pi-cloud-base`** (`docker/base.Dockerfile`) — node + OS deps + neovim
-  + mise/Ruby (~800MB). Rebuilt rarely (ruby/node/OS bumps) by `build-base.yaml`
+- **`pi-cloud-base`** (`docker/base.Dockerfile`) — node + OS deps (+ the C
+  toolchain, `build-essential`, for runtime native-gem builds) + neovim
+  + mise/Ruby. Rebuilt rarely (ruby/node/OS bumps) by `build-base.yaml`
   (path-triggered push + `workflow_dispatch`); pushed as
   `vcp.ocir.io/axtvnrdemzo7/pi-cloud-base:ruby-4.0.5` (+ `latest`).
   (tmux was built into the base until the herdr switch; the next base rebuild drops it.)
