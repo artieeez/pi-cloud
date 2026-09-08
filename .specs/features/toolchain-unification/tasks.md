@@ -86,6 +86,8 @@ inline in order (no sub-agents needed). One PR opened at the end.
 **Where:** `renovate.json`
 **Tests:** python json parse + assertions: five custom managers with the right datasource/packageName pairs (herdr/kubectl/gh = github-releases; pi/playwright = npm), github-actions manager, weekly Mon 06:00 schedule in America/Sao_Paulo, `dependencies` label, own-image (vcp.ocir.io) packageRule present.
 **Gate:** `validate-toolchain.py` check 4 green.
+**Status:** done
+**Status:** done
 
 ### T6: herdr sha-sync helper (script + workflow)
 

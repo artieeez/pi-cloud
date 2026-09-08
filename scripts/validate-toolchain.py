@@ -102,8 +102,12 @@ def main():
             sched = json.dumps(cfg.get("schedule", ""))
             tz = cfg.get("timezone", "")
             labels = cfg.get("labels", [])
-            rules = json.dumps(cfg)
-            own_off = re.search(r"vcp\\.ocir\\.io", rules) and '"enabled": false' in rules
+            rules = cfg.get("packageRules", [])
+            own_off = any(
+                r.get("enabled") is False
+                and any(str(p).startswith("/^vcp") for p in r.get("matchPackageNames", []))
+                for r in rules
+            )
             digests_on = bool(cfg.get("pinDigests"))
             ok = ok and ("before 6am on Monday" in sched) and tz == "America/Sao_Paulo"
             ok = ok and labels == ["dependencies"] and own_off and not digests_on
