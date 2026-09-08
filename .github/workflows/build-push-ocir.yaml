@@ -9,10 +9,10 @@ env:
   REGISTRY: vcp.ocir.io
   OCIR_NAMESPACE: axtvnrdemzo7
   IMAGE_NAME: pi-cloud
-  # Stable base (node + OS deps + tmux + mise/Ruby) built by build-base.yaml.
+  # Stable base (node + OS deps + mise/Ruby) built by build-base.yaml.
   # Keep BASE_TAG in sync there; bump it when the base is republished.
   BASE_IMAGE_NAME: pi-cloud-base
-  BASE_TAG: ruby-4.0.5_tmux-3.7c-4
+  BASE_TAG: ruby-4.0.5-5
 
 jobs:
   build:
@@ -40,6 +40,26 @@ jobs:
           SHORT_SHA="$(echo "${GITHUB_SHA}" | cut -c1-7)"
           echo "sha_tag=sha-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
           echo "image=${{ env.REGISTRY }}/${{ env.OCIR_NAMESPACE }}/${{ env.IMAGE_NAME }}" >> "$GITHUB_OUTPUT"
+
+      # When a single merged PR changes the base (docker/base.Dockerfile) and
+      # the app together, both workflows start on the same push. build-base
+      # must publish BASE_TAG before this build can FROM it — poll the OCIR
+      # manifest (authed by the login above) for up to 600s instead of racing.
+      # On ordinary pushes the manifest already exists, so this step is a
+      # single fast check.
+      - name: Wait for base image manifest
+        run: |
+          IMG="${{ env.REGISTRY }}/${{ env.OCIR_NAMESPACE }}/${{ env.BASE_IMAGE_NAME }}:${{ env.BASE_TAG }}"
+          for i in $(seq 1 60); do
+            if docker manifest inspect "${IMG}" >/dev/null 2>&1; then
+              echo "base manifest present: ${IMG}"
+              exit 0
+            fi
+            echo "waiting for ${IMG} (${i}/60)"
+            sleep 10
+          done
+          echo "base image ${IMG} not published after 600s" >&2
+          exit 1
 
       - name: Build and push
         uses: docker/build-push-action@v7

@@ -78,6 +78,7 @@ inline in order (no sub-agents needed). One PR opened at the end.
 **Where:** `.github/workflows/build-push-ocir.yaml`
 **Tests:** grep asserts `BASE_TAG: ruby-4.0.5-5` identical to build-base.yaml AND a manifest-wait step (`docker manifest inspect`, up to 600s) present after the OCIR login step.
 **Gate:** `validate-toolchain.py` check 3 green. (Pushed with gate B.)
+**Status:** done
 
 ### T5: Add renovate.json for pi-cloud
 
