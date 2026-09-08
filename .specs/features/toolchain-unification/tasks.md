@@ -95,6 +95,7 @@ inline in order (no sub-agents needed). One PR opened at the end.
 **Where:** `scripts/herdr-sha-sync.sh` + `.github/workflows/herdr-sha-sync.yaml`
 **Tests:** `bash -n` + `shellcheck` clean; no-op simulation (sha already matches) exits 0 with no commit; fork guard present in workflow; pull_request trigger with `Dockerfile` path filter.
 **Gate:** `validate-toolchain.py` checks 5–6 green.
+**Status:** done
 
 ### T7: Clean pi-cloud tmux docs and comments
 

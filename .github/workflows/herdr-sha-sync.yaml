@@ -1,0 +1,43 @@
+name: herdr sha-sync
+
+# Keeps ARG HERDR_SHA256 in Dockerfile in sync when a PR bumps ARG HERDR_VERSION
+# (Renovate's herdr PRs). Renovate cannot compute the release-asset hash, so
+# this workflow downloads the published herdr-linux-aarch64 asset for the PR
+# head's HERDR_VERSION, computes its sha256, and pushes it onto the PR branch
+# when they differ. Idempotent: a run whose sha already matches makes no commit,
+# so the helper's own push (synchronize) and unrelated Dockerfile PRs no-op.
+#
+# Only same-repo PRs are actionable (a fork branch cannot be pushed with
+# GITHUB_TOKEN) — fork PRs are skipped at the job level.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - Dockerfile
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Sync HERDR_SHA256
+        run: |
+          bash scripts/herdr-sha-sync.sh
+          if ! git diff --quiet -- Dockerfile; then
+            git config user.name "pi-cloud-ci-bot"
+            git config user.email "pi-cloud-ci-bot@users.noreply.github.com"
+            git add Dockerfile
+            git commit -m "chore(deps): sync HERDR_SHA256 for herdr bump [skip ci]"
+            git push
+          else
+            echo "no sha change needed"
+          fi
