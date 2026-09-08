@@ -64,8 +64,9 @@
 
 - **Feature in flight:** `.specs/features/lazyvim-on-box/` on branch
   `feat/lazyvim-on-box` (nvim-config boot sync → `/root/.config/nvim` +
-  Termux Nerd Font docs + AD-004). Commits pending; then Verifier, then push +
-  PR, then user merge/promote.
+  Termux Nerd Font docs + AD-004). Commits `33cc715..7a2476f`;
+  **Verifier PASS** (`validation.md`, 8/8 AC evidence + 5/5 discrimination
+  mutants killed). Awaiting PR open → user merge/promote.
 - **Live box (applied, persists on the `/root` PVC):** nvim-config cloned at
   `/root/.config/nvim` on origin/main and LazyVim plugins installed (first-run
   headless sync). The updated `sync-configs.sh` reaches pods only after the
@@ -74,4 +75,5 @@
   (`~/.termux/font.ttf`, sha256 matches the Mac file), reloaded; glyphs render.
 - **Repo state:** pi-cloud on `feat/lazyvim-on-box` (from `main`); no other
   branches in flight.
-- **External action pending:** none — push/PR/deploy waits for user go-ahead.
+- **External action pending:** open PR (user approved); deploy follows on
+  merge via the normal image rebuild + rollout (`build-push-ocir.yaml`).
