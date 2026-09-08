@@ -46,9 +46,9 @@
 
 ## Handoff snapshot
 
-- **Feature in flight:** `.specs/features/toolchain-unification/` (approved;
-  implementing on branch `chore/toolchain-unification`; single PR at the end).
-- **Repo state:** pi-cloud on `main`, clean, synced to origin (9011039).
-  artr-gitops on `main`, clean.
+- **Feature in flight:** `.specs/features/toolchain-unification/` — implemented on
+  branch `chore/toolchain-unification` (commits fa90af8…9d71558 + gitops c00b138);
+  awaiting Verifier, then push + PR, then user merge/promote.
+- **Repo state:** pi-cloud on `chore/toolchain-unification`, artr-gitops on `main` (c00b138).
 - **External action pending:** install the hosted Renovate GitHub App on
   artieeez/pi-cloud (may already be org-wide — verify at execution).

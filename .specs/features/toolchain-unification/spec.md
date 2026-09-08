@@ -141,15 +141,15 @@ the touched files; STATE.md contains the three AD entries.
 
 | Requirement ID | Story       | Phase | Status  |
 | -------------- | ----------- | ----- | ------- |
-| TCH-01         | P1: Base rebuild without tmux | Tasks | Pending |
-| TCH-02         | P1: Base rebuild without tmux | Tasks | Pending |
-| TCH-03         | P1: Base rebuild without tmux | Tasks | Pending |
-| TCH-04         | P1: All version bumps through one bot queue | Tasks | Pending |
-| TCH-05         | P1: All version bumps through one bot queue | Tasks | Pending |
-| TCH-06         | P1: All version bumps through one bot queue | Tasks | Pending |
-| TCH-07         | P2: Policy recorded and docs consistent | Tasks | Pending |
-| TCH-08         | P2: Policy recorded and docs consistent | Tasks | Pending |
-| TCH-09         | P2: Policy recorded and docs consistent | Tasks | Pending |
+| TCH-01         | P1: Base rebuild without tmux | Tasks | Implemented |
+| TCH-02         | P1: Base rebuild without tmux | Tasks | Implemented |
+| TCH-03         | P1: Base rebuild without tmux | Tasks | Implemented |
+| TCH-04         | P1: All version bumps through one bot queue | Tasks | Implemented |
+| TCH-05         | P1: All version bumps through one bot queue | Tasks | Implemented |
+| TCH-06         | P1: All version bumps through one bot queue | Tasks | Implemented |
+| TCH-07         | P2: Policy recorded and docs consistent | Tasks | Implemented |
+| TCH-08         | P2: Policy recorded and docs consistent | Tasks | Implemented |
+| TCH-09         | P2: Policy recorded and docs consistent | Tasks | Implemented |
 
 **Coverage:** 9 total, 9 mapped to tasks, 0 unmapped
 

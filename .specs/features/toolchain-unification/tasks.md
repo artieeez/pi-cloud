@@ -111,3 +111,4 @@ inline in order (no sub-agents needed). One PR opened at the end.
 **Where:** artr-gitops `apps/pi/deployment.yaml` + `apps/pi/README.md`; `.specs/STATE.md` + this `tasks.md`
 **Tests:** grep in artr-gitops: deployment.yaml header and apps/pi/README.md contain no tmux mention and describe herdr; STATE.md records AD-001..AD-003; traceability statuses updated to Verified in spec.md.
 **Gate:** `validate-toolchain.py` exit 0 (all checks, `--gitops` path), `git status --porcelain` clean in both repos. CI goes green at merge on main; Verifier runs after the branch is pushed.
+**Status:** done
