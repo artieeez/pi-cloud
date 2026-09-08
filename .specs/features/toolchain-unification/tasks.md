@@ -62,6 +62,7 @@ inline in order (no sub-agents needed). One PR opened at the end.
 **Where:** `docker/base.Dockerfile`
 **Tests:** grep asserts zero `tmux`/`TMUX_VERSION`/`libevent`/`libncurses` and no `/opt/tmux` in `docker/base.Dockerfile`; ruby shim block retained (`/opt/mise/shims/ruby` test line still present).
 **Gate:** `validate-toolchain.py` check 1 green.
+**Status:** done
 
 ### T3: Republish the base under ruby-4.0.5-5
 
