@@ -40,6 +40,7 @@ ssh pi-cloud    # alias using the FQDN above — reliable on both devices
 alias pi-cloud="ssh pi-cloud"                 # ssh pi-cloud
 alias picloud="ssh -t pi-cloud herdr"
 ```
+
 (the Mac's Homebrew `herdr` attaches to the box's herdr server over SSH; run
 `herdr --remote pi-cloud` anywhere the herdr CLI exists, e.g. from iTerm)
 

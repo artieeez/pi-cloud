@@ -33,7 +33,7 @@ one copy of the heavy layers:
 
 - **`pi-cloud-base`** (`docker/base.Dockerfile`) — node + OS deps (+ the C
   toolchain, `build-essential`, for runtime native-gem builds) + neovim
-  + mise/Ruby. Rebuilt rarely (ruby/node/OS bumps) by `build-base.yaml`
+  - mise/Ruby. Rebuilt rarely (ruby/node/OS bumps) by `build-base.yaml`
   (path-triggered push + `workflow_dispatch`); pushed as
   `vcp.ocir.io/axtvnrdemzo7/pi-cloud-base:ruby-4.0.5-5` (+ `latest`).
   (tmux was removed in the ruby-4.0.5-5 rebuild — herdr hosts the panes.)
