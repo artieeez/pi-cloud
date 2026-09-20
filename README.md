@@ -25,6 +25,10 @@ A persistent, SSH-accessible dev box on the artr OKE cluster (oracle-cluster) fo
 - **neovim 0.12.5** (official arm64 build) — sshd + nvim = phone-friendly editing. The box runs your LazyVim config (`artieeez/nvim-config`), boot-synced to `~/.config/nvim`; nvim/herdr icons render client-side, so the ssh client's terminal needs a Nerd Font (phone: [docs/PHONE-TERMUX.md](docs/PHONE-TERMUX.md) §6, Mac: JetBrainsMono Nerd Font)
 - ~~tmux~~ — removed in the ruby-4.0.5-5 base rebuild; herdr hosts the panes
 - git, ripgrep, sqlite3, libvips, jq, Node 24
+- **less + man pages** — user-friendly pager + local docs (`man-db`/`groff-base`);
+  the Debian bookworm-slim base ships neither, so the base image re-enables the
+  `dpkg` man path-exclude and restores the pre-installed packages' man trees
+  (`/usr/share/doc` and locales stay excluded for size)
 
 ## Two images: base + app
 
@@ -35,7 +39,7 @@ one copy of the heavy layers:
   toolchain, `build-essential`, for runtime native-gem builds) + neovim
   - mise/Ruby. Rebuilt rarely (ruby/node/OS bumps) by `build-base.yaml`
   (path-triggered push + `workflow_dispatch`); pushed as
-  `vcp.ocir.io/axtvnrdemzo7/pi-cloud-base:ruby-4.0.5-5` (+ `latest`).
+  `vcp.ocir.io/axtvnrdemzo7/pi-cloud-base:ruby-4.0.5-6` (+ `latest`).
   (tmux was removed in the ruby-4.0.5-5 rebuild — herdr hosts the panes.)
 - **`pi-cloud`** (repo-root `Dockerfile`) — thin delta over the base: pi agent
   version, kubectl, gh, playwright-cli (+ chromium headless shell), container

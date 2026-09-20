@@ -71,14 +71,29 @@ ARG TREE_SITTER_VERSION
 # compile ruby, but multi-stage COPY only carries binaries out of that
 # stage — nothing from it reaches this image, so without this line a fresh box
 # has no cc/make and every native-gem `bundle install` fails at extconf.
-RUN apt-get update -qq && \
+#
+# less + man pages (user-facing pager and local docs; node:bookworm-slim ships
+# neither). The slim base writes /etc/dpkg/dpkg.cfg.d/docker with
+# `path-exclude /usr/share/man/*`, so dpkg would strip man trees at unpack time —
+# the exclude is removed BEFORE the install below. Packages already in the base
+# lost their man trees to debuerreotype-slimify (a filesystem deletion, not just
+# a filter), so the base set is --reinstall-ed afterwards to resurrect them.
+# /usr/share/doc and /usr/share/locale stay excluded on purpose (size); only man
+# pages are restored. groff-base = roff renderer that `man` shells out to.
+RUN sed -i '\#path-exclude /usr/share/man/#d' /etc/dpkg/dpkg.cfg.d/docker && \
+    apt-get update -qq && \
     apt-get install --no-install-recommends -y \
       bash ca-certificates curl git ripgrep \
       openssh-server \
       sqlite3 libvips42 jq \
       libstdc++6 \
       libyaml-0-2 libssl3 zlib1g libffi8 libgmp10 libreadline8 \
-      build-essential && \
+      build-essential \
+      less man-db groff-base manpages && \
+    apt-get install --no-install-recommends --reinstall -y \
+      bash bsdutils coreutils dash debianutils diffutils dpkg e2fsprogs \
+      findutils grep gzip hostname init-system-helpers login mawk mount \
+      ncurses-bin passwd perl-base sed sysvinit-utils tar util-linux && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives && \
     mkdir -p /run/sshd && \
     # Image-baked ssh host keys would rotate on every rebuild (postinst ssh-keygen -A).

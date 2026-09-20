@@ -12,7 +12,7 @@ env:
   # Stable base (node + OS deps + mise/Ruby) built by build-base.yaml.
   # Keep BASE_TAG in sync there; bump it when the base is republished.
   BASE_IMAGE_NAME: pi-cloud-base
-  BASE_TAG: ruby-4.0.5-5
+  BASE_TAG: ruby-4.0.5-6
 
 jobs:
   build:
