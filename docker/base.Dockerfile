@@ -78,6 +78,11 @@ ARG TREE_SITTER_VERSION
 # the exclude is removed BEFORE the install below. Packages already in the base
 # lost their man trees to debuerreotype-slimify (a filesystem deletion, not just
 # a filter), so the base set is --reinstall-ed afterwards to resurrect them.
+# C programmer docs ride the same man-db: manpages-dev ships the Linux
+# section 2/3 pages (man 3 printf, man 3 pthread_create). The bare `man pthread`
+# topic (POSIX manual, manpages-posix-dev) is Debian non-free only and is
+# deliberately out of scope: it would force a non-free apt source into the
+# image plus man-db section plumbing, for one topic.
 # /usr/share/doc and /usr/share/locale stay excluded on purpose (size); only man
 # pages are restored. groff-base = roff renderer that `man` shells out to.
 RUN sed -i '\#path-exclude /usr/share/man/#d' /etc/dpkg/dpkg.cfg.d/docker && \
@@ -89,7 +94,7 @@ RUN sed -i '\#path-exclude /usr/share/man/#d' /etc/dpkg/dpkg.cfg.d/docker && \
       libstdc++6 \
       libyaml-0-2 libssl3 zlib1g libffi8 libgmp10 libreadline8 \
       build-essential \
-      less man-db groff-base manpages && \
+      less man-db groff-base manpages manpages-dev && \
     apt-get install --no-install-recommends --reinstall -y \
       bash bsdutils coreutils dash debianutils diffutils dpkg e2fsprogs \
       findutils grep gzip hostname init-system-helpers login mawk mount \
