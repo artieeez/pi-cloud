@@ -62,18 +62,21 @@
 
 ## Handoff snapshot
 
-- **Feature in flight:** `.specs/features/lazyvim-on-box/` on branch
-  `feat/lazyvim-on-box` (nvim-config boot sync → `/root/.config/nvim` +
-  Termux Nerd Font docs + AD-004). Commits `33cc715..7a2476f`;
-  **Verifier PASS** (`validation.md`, 8/8 AC evidence + 5/5 discrimination
-  mutants killed). Awaiting PR open → user merge/promote.
-- **Live box (applied, persists on the `/root` PVC):** nvim-config cloned at
-  `/root/.config/nvim` on origin/main and LazyVim plugins installed (first-run
-  headless sync). The updated `sync-configs.sh` reaches pods only after the
-  image rebuild + rollout that follows the PR merge.
-- **Phone (applied):** Termux font = JetBrainsMono Nerd Font Regular
-  (`~/.termux/font.ttf`, sha256 matches the Mac file), reloaded; glyphs render.
-- **Repo state:** pi-cloud on `feat/lazyvim-on-box` (from `main`); no other
-  branches in flight.
+- **Feature in flight:** `.specs/features/less-man-pages/` on branch
+  `feat/less-man-pages` (inline Small-scope spec; no spec.md/tasks.md by
+  design). Commit `9420978`; **validation PASS** (`validation.md`, RQ-01..04
+  evidence + two build gates). Awaiting PR open → user merge/promote.
+- **What it ships:** `less` + man pages on the box, delivered through the base
+  image re-published as `ruby-4.0.5-6` (`build-base.yaml` + `build-push-ocir.yaml`
+  BASE_TAG synced in the same PR; app rebuild inherits via FROM). `less`/man
+  were absent because node:bookworm-slim ships neither (dpkg man path-exclude
+  - slimify-deleted man trees); base restores both and keeps `/usr/share/doc`
+  - locales excluded for size.
+- **Repo state:** pi-cloud on `feat/less-man-pages` (branched from `main`,
+  `origin/main` merged/fetched — no drift). Previous feature (lazyvim-on-box)
+  landed on main as PR #4; earlier handoff entry about it was stale and has
+  been replaced by this one.
 - **External action pending:** open PR (user approved); deploy follows on
-  merge via the normal image rebuild + rollout (`build-push-ocir.yaml`).
+  merge via the normal image rebuild + rollout (`build-base` publishes
+  `ruby-4.0.5-6`, app build waits on its manifest, then Argo CD syncs).
+  Local verification image kept as `pi-cloud-base:man-gate` for poking.
