@@ -23,7 +23,10 @@ env:
   # the app workflow tag is synced in a follow-up commit (see f0bb0b2).
   # -5: base drops tmux (herdr replaced it as the pane host); the app workflow
   # syncs via the same PR and waits for this manifest before building.
-  BASE_TAG: ruby-4.0.5-5
+  # -6: base restores less + man pages (slim removes both: dpkg man
+  # path-exclude removed + man-db/groff-base/less installed, slimified man
+  # trees resurrected via --reinstall). No version-bearing content changes.
+  BASE_TAG: ruby-4.0.5-6
 
 jobs:
   build:
