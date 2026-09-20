@@ -100,6 +100,25 @@ mkdir -p "${HOME_DIR}/artieeez"
 # env (PI_CLOUD, DEEPINFRA_API_KEY). Attach later with `herdr` over ssh, or
 # `herdr --remote pi-cloud` from a device that has the herdr CLI.
 # ---------------------------------------------------------------------------
+# Panes for terminal panes must match ssh login shells: herdr's default
+# shell_mode on Linux is non-login interactive, so /etc/profile.d is never
+# sourced inside a pane. Pin a minimal herdr config so every new pane is a
+# bash login shell and /etc/profile.d applies the toolchain PATH, PI_CLOUD,
+# and the sealed-key exports there too. The write is idempotent: a config
+# that already declares [terminal] is left untouched.
+HDR_CONFIG="${HOME_DIR}/.config/herdr/config.toml"
+if [ ! -f "${HDR_CONFIG}" ] || ! grep -q '^\[terminal\]' "${HDR_CONFIG}"; then
+  mkdir -p "$(dirname "${HDR_CONFIG}")"
+  [ ! -f "${HDR_CONFIG}" ] || printf '\n' >> "${HDR_CONFIG}"
+  printf '[terminal]\ndefault_shell = "/bin/bash"\nshell_mode = "login"\n' >> "${HDR_CONFIG}"
+  log "herdr config pinned to login-shell panes (${HDR_CONFIG})"
+fi
+
+# TERM: the headless server inherits no terminal, so its panes can see an
+# empty TERM, which breaks full-screen apps like nvim. Export a sane fallback;
+# herdr keeps whatever TERM the attaching client sends.
+export TERM="${TERM:-xterm-256color}"
+
 # Export the login shell: entrypoint is not a login shell, so SHELL is unset
 # here. herdr's terminal.default_shell is empty, which would make every new
 # terminal pane resolve `$SHELL`, then /bin/sh -> dash (no tab completion).

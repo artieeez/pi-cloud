@@ -171,6 +171,28 @@ fine and the problem is elsewhere.
 family as the Mac) → `~/.termux/font.ttf` + `termux-reload-settings`:
 [docs/PHONE-TERMUX.md](PHONE-TERMUX.md) §6.
 
+## 13. `nvim` (or the toolchain env) missing/broken inside herdr panes
+
+**Symptom:** over ssh, a login shell has `nvim` on PATH and `PI_CLOUD=1`; inside
+a herdr pane, `nvim` fails to open (command-not-found, blank/broken TUI, or
+TERM errors) and pane env looks different from the login shell.
+
+**Cause:** herdr's default `shell_mode` on Linux is **non-login interactive**:
+panes never source `/etc/profile.d/pi-cloud.sh`, so they inherit only the
+headless `herdr server` env (the container `ENV`: toolchain PATH yes, but no
+`PI_CLOUD`, no sealed keys, and no guaranteed `TERM`, since the server starts
+with no terminal). ssh login shells work because sshd sources `/etc/profile`.
+
+**Fix (baked):** the entrypoint pins an idempotent herdr config
+(`~/.config/herdr/config.toml`, `[terminal]` `default_shell = "/bin/bash"` +
+`shell_mode = "login"`) so every new pane is a bash **login shell** that
+sources `/etc/profile.d`, and exports a `TERM` fallback (`xterm-256color`) into
+the server env (also mirrored in profile.d). Existing panes keep their old
+shell — create a new pane after the deploy to pick it up.
+
+Runtime workaround until deployed: in the pane run
+`. /etc/profile.d/pi-cloud.sh` (or open a fresh pane after the rollout).
+
 ## Build/CI notes
 
 - The OCIR `update-gitops` job only bumps `apps/pi/deployment.yaml` when the
@@ -178,3 +200,29 @@ family as the Mac) → `~/.termux/font.ttf` + `termux-reload-settings`:
   cleanly.
 - Buildkit layer cache (`type=gha`) makes image iterations fast; the slow spot
   is the first Ruby-from-source compile (~10 min on the arm64 runner).
+
+## 12. C library man pages missing (`man 3 printf` finds nothing)
+
+**Symptom:** `man 3 printf`, `man 3 pthread_create` → *"No manual entry for
+printf"* while `man less`/`man git` render fine.
+
+**Cause:** the base installs `manpages` only, which covers section 1 (user
+commands). The C library reference (Linux section 2/3 pages: `printf(3)`,
+`pthread_create(3)`) ships in `manpages-dev`.
+
+**Fix (baked):** `docker/base.Dockerfile`'s final-stage apt list now installs
+`manpages-dev` (base republished as `ruby-4.0.5-7`; the app image inherits via
+FROM). Runtime workaround until that base deploys:
+
+```bash
+apt-get update && apt-get install -y manpages-dev
+```
+
+(the image `rm -rf`s apt lists at build time, so any runtime `apt-get install`
+needs the `apt-get update` first).
+
+**Known limitation:** the bare `man pthread` topic belongs to the POSIX
+programmer's manual (`pthread(3posix)`, package `manpages-posix-dev`), which
+Debian ships only in non-free and which man-db does not index by default. It is
+deliberately out of scope (adding a non-free source + man-db section plumbing
+for one topic); use `man 3 pthread_create` and family instead.

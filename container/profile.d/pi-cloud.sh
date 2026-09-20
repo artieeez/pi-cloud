@@ -1,4 +1,5 @@
-# pi-cloud: make the box's toolchain available to SSH login shells.
+# pi-cloud: make the box's toolchain available to SSH login shells (and,
+# since herdr panes now run as login shells too, to every herdr pane).
 # Container ENV (Dockerfile PATH) is NOT inherited by sshd sessions, which reset
 # PATH from /etc/login.defs — so export everything pi/ruby/mise need here, plus
 # the context marker and model env keys that the boot herdr server would
@@ -6,6 +7,11 @@
 export PATH="/opt/nvim/bin:/opt/mise-root/local/bin:/opt/mise/shims:${PATH}"
 export MISE_DATA_DIR=/opt/mise
 export MISE_CONFIG_DIR=/opt/mise-root/config
+
+# TERM fallback: panes (herdr or otherwise) can arrive with an empty TERM,
+# which breaks full-screen apps like nvim. Only fill when unset — the ssh
+# client's TERM always wins.
+export TERM="${TERM:-xterm-256color}"
 
 # pi-cloud context marker (activates the pi-cloud-context extension).
 export PI_CLOUD=1
