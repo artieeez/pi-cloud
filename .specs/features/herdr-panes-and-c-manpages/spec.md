@@ -13,10 +13,11 @@ Two box defects surfaced from use:
    the headless `herdr server` inherited (entrypoint runs with no terminal, so
    `TERM` can be empty). The fix makes panes login shells and guarantees `TERM`
    server-side, so a pane's environment is identical to an ssh login shell.
-2. `man pthread` finds nothing. The base installs `manpages` (section 1 pages
-   only); the C programmer docs live elsewhere: `pthread(3posix)` and the other
-   POSIX pages come from `manpages-posix-dev`, the Linux section-3 variants
-   (`printf(3)`, `pthread_create(3)`) from `manpages-dev`.
+2. C library reference pages are missing. The base installs `manpages`
+   (section 1 pages only); the Linux section 2/3 C library pages (`printf(3)`,
+   `pthread_create(3)`) ship in `manpages-dev`. The bare `man pthread` topic is
+   the POSIX programmer's manual (`pthread(3posix)`, Debian non-free only) and
+   is deliberately out of scope — recorded in the assumptions.
 
 ## Goals
 
@@ -40,10 +41,9 @@ Two box defects surfaced from use:
 - AC-03: WHEN the base image is republished THEN `BASE_TAG` SHALL be
   `ruby-4.0.5-7` in `.github/workflows/build-base.yaml` AND
   `.github/workflows/build-push-ocir.yaml`.
-- AC-04: WHEN `man pthread` runs on the box THEN the `pthread(3posix)` page
-  SHALL render.
-- AC-05: WHEN `man 3 printf` runs on the box THEN the `printf(3)` page SHALL
+- AC-04: WHEN `man 3 pthread_create` runs on the box THEN the page SHALL
   render.
+- AC-05: WHEN `man 3 printf` runs on the box THEN the page SHALL render.
 - AC-06: WHEN the herdr config file already declares a `[terminal]` section
   THEN the entrypoint SHALL NOT modify it (the config write is idempotent).
 
@@ -52,7 +52,8 @@ Two box defects surfaced from use:
 | Assumption / decision | Chosen default | Rationale | Confirmed? |
 | --------------------- | -------------- | --------- | ---------- |
 | herdr `shell_mode` default on Linux is non-login | panes must be forced to `login` | herdr docs: `auto` = login only on macOS, non-login elsewhere | docs (on-box check post-deploy) |
-| `pthread` man page lives in `manpages-posix-dev` | install `manpages-dev manpages-posix manpages-posix-dev` | Debian bookworm filelists: `man3/pthread.3posix.gz` + `man3/pthread_create.3.gz` | packages.debian.org |
+| C library docs ship in `manpages-dev` (main) | install `manpages-dev` | Debian bookworm filelist: `printf.3.gz`, `pthread_create.3.gz`; runtime-proven in the gate container | packages.debian.org + docker run |
+| Bare `man pthread` topic (POSIX manual) | out of scope this round | `pthread(3posix)` is Debian non-free only and man-db does not index the `3posix` section by default; enabling non-free + section plumbing for one topic is not worth the posture cost (user capped gate effort) | decided; recorded in TROUBLESHOOTING #12 |
 | The herdr config file is user-owned on the PVC | entrypoint writes only when `[terminal]` is absent | Never clobber a user config | by design |
 | Exact nvim-in-herdr failure text | not required for the fix | Login-shell env + TERM fallback covers PATH, env, and TERM failure classes; runtime confirmation is a post-deploy check | pending on box |
 | Base republish follows AD-001 convention | next counter `ruby-4.0.5-7`, tag synced in the same PR | AD-001 established the pattern | yes |
@@ -70,6 +71,8 @@ TERM failure classes regardless of the message.
 | nvim-config / LazyVim changes | Editor content is the user's; this feature only makes the pane env sane |
 | tmux-style pane tooling | herdr already hosts panes (AD-001) |
 | `/usr/share/doc` or locale restoration | Size trade recorded in AD-…/less-man-pages; man only |
+| POSIX `3posix` manual (bare `man pthread` topic) | Debian non-free only + man-db does not index `3posix` by default; cost > value for one topic (see assumptions) |
+
 ## User Stories
 
 ### P0: nvim opens inside a herdr pane with the full toolchain env
@@ -81,14 +84,14 @@ shell, because herdr is my primary session host.
 **Why P0:** The box exists for phone-friendly editing; herdr is the pane host
 (AD-001); a pane missing the toolchain env and a sane TERM defeats the box.
 
-### P0: `man pthread` renders C documentation on the box
+### P0: C library man pages render on the box
 
-**User story:** As a box user writing C, I want `man pthread` and `man 3 printf`
-to render reference material, because the box is a general dev box and the man
-pages for the C library are part of that.
+**User story:** As a box user writing C, I want `man 3 printf` and
+`man 3 pthread_create` to render reference material, because the box is a
+general dev box and the man pages for the C library are part of that.
 
 **Why P0:** The less/man-pages feature restored sections 1/5/7 only; C
-programmers hit the gap on first `man pthread`.
+programmers hit the gap on first `man 3 pthread_create`.
 
 ## Requirement Traceability
 
@@ -97,6 +100,6 @@ programmers hit the gap on first `man pthread`.
 | AC-01 | `scripts/validate-herdr-panes.py` HDP-02 (entrypoint writes `[terminal] shell_mode=login`) | `herdr` attach → `type bash; echo $PI_CLOUD $PATH` in a new pane |
 | AC-02 | `scripts/validate-herdr-panes.py` HDP-01/HDP-03 (TERM fallback in entrypoint + profile.d) | new pane → `echo ${TERM:-EMPTY}` non-empty |
 | AC-03 | `scripts/validate-c-man-pages.py` CMP-03 (tag sync in both workflows) + `scripts/validate-toolchain.py` TCH-02/03 | workflow diff on PR |
-| AC-04 | `scripts/validate-c-man-pages.py` CMP-02 (packages present) + focused image gate: `man -w pthread` | box → `man pthread` renders |
-| AC-05 | same as AC-04 (CMP-02 package set) | box → `man 3 printf` renders |
+| AC-04 | `scripts/validate-c-man-pages.py` CMP-02 (`manpages-dev` present); runtime gate: `MANPAGER=cat man 3 pthread_create` renders (exit 0) | box → `man 3 pthread_create` renders |
+| AC-05 | `scripts/validate-c-man-pages.py` CMP-02; runtime gate: `MANPAGER=cat man 3 printf` renders (exit 0) | box → `man 3 printf` renders |
 | AC-06 | `scripts/validate-herdr-panes.py` HDP-04 (guard keeps existing `[terminal]` untouched) | second boot: config file unchanged |
