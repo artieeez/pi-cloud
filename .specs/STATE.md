@@ -70,15 +70,17 @@
   `default_shell=/bin/bash` + `shell_mode=login`, idempotent) with a
   `TERM` fallback exported server-side + in `profile.d` — pane env becomes
   identical to ssh login shells, so `nvim` opens in herdr panes;
-  (2) base image gains C/POSIX man pages
-  (`manpages-dev manpages-posix manpages-posix-dev`: `man pthread` =
-  `pthread(3posix)`), republished as `ruby-4.0.5-7` with both build
-  workflows synced (AD-001 counter convention). Each fix gets a
+  (2) base image gains C library man pages (`manpages-dev`: `man 3 printf`,
+  `man 3 pthread_create` — runtime-proven in a bookworm container),
+  republished as `ruby-4.0.5-7` with both build workflows synced
+  (AD-001 counter convention). The bare `man pthread` topic is the POSIX
+  manual (Debian non-free only) and is deliberately out of scope — recorded
+  in TROUBLESHOOTING #12 and the spec's assumptions. Each fix gets a
   `docs/TROUBLESHOOTING.md` entry.
 - **Validation:** two new deterministic gates
   (`scripts/validate-herdr-panes.py`, `scripts/validate-c-man-pages.py`)
-  + `validate-toolchain.py`/`validate-man-pages.py` regression + `bash -n`
-  + markdownlint. Runtime gates (focused base-image build; on-box pane +
+  - `validate-toolchain.py`/`validate-man-pages.py` regression + `bash -n`
+  - markdownlint. Runtime gates (focused base-image build; on-box pane +
   `man` checks) pending: docker daemon was down locally; CI builds on
   merge; on-box checks need a deployment.
 - **Repo state:** on `main` (clean); less-man-pages already merged as PR #8
