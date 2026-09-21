@@ -58,10 +58,9 @@ Two box defects surfaced from use:
 | Exact nvim-in-herdr failure text | not required for the fix | Login-shell env + TERM fallback covers PATH, env, and TERM failure classes; runtime confirmation is a post-deploy check | pending on box |
 | Base republish follows AD-001 convention | next counter `ruby-4.0.5-7`, tag synced in the same PR | AD-001 established the pattern | yes |
 
-**Open questions:** the exact nvim error text inside the pane remains unobserved
-(no box access from this environment); it is recorded as a post-deploy runtime
-confirmation, not a design input — the fix is complete for the PATH, env, and
-TERM failure classes regardless of the message.
+**Open questions:** none. The user-reported failure (`bash: nvim: command
+not found`) matches the diagnosed PATH-inheritance failure class; a post-deploy
+smoke check (new pane → `which nvim nvim --version`) remains as confirmation.
 
 ## Out of Scope
 
