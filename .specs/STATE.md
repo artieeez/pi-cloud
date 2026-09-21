@@ -62,21 +62,29 @@
 
 ## Handoff snapshot
 
-- **Feature in flight:** `.specs/features/less-man-pages/` on branch
-  `feat/less-man-pages` (inline Small-scope spec; no spec.md/tasks.md by
-  design). Commit `9420978`; **validation PASS** (`validation.md`, RQ-01..04
-  evidence + two build gates). Awaiting PR open → user merge/promote.
-- **What it ships:** `less` + man pages on the box, delivered through the base
-  image re-published as `ruby-4.0.5-6` (`build-base.yaml` + `build-push-ocir.yaml`
-  BASE_TAG synced in the same PR; app rebuild inherits via FROM). `less`/man
-  were absent because node:bookworm-slim ships neither (dpkg man path-exclude
-  - slimify-deleted man trees); base restores both and keeps `/usr/share/doc`
-  - locales excluded for size.
-- **Repo state:** pi-cloud on `feat/less-man-pages` (branched from `main`,
-  `origin/main` merged/fetched — no drift). Previous feature (lazyvim-on-box)
-  landed on main as PR #4; earlier handoff entry about it was stale and has
-  been replaced by this one.
-- **External action pending:** open PR (user approved); deploy follows on
-  merge via the normal image rebuild + rollout (`build-base` publishes
-  `ruby-4.0.5-6`, app build waits on its manifest, then Argo CD syncs).
-  Local verification image kept as `pi-cloud-base:man-gate` for poking.
+- **Feature in flight:** `.specs/features/herdr-panes-and-c-manpages/`
+  (Small scope; spec.md only, no design/tasks). Spec gate PASS.
+  Branch `feat/herdr-panes-and-c-manpages` (from main).
+- **What it ships:** (1) herdr panes become bash **login shells**
+  (entrypoint-writes `~/.config/herdr/config.toml` `[terminal]`
+  `default_shell=/bin/bash` + `shell_mode=login`, idempotent) with a
+  `TERM` fallback exported server-side + in `profile.d` — pane env becomes
+  identical to ssh login shells, so `nvim` opens in herdr panes;
+  (2) base image gains C library man pages (`manpages-dev`: `man 3 printf`,
+  `man 3 pthread_create` — runtime-proven in a bookworm container),
+  republished as `ruby-4.0.5-7` with both build workflows synced
+  (AD-001 counter convention). The bare `man pthread` topic is the POSIX
+  manual (Debian non-free only) and is deliberately out of scope — recorded
+  in TROUBLESHOOTING #12 and the spec's assumptions. Each fix gets a
+  `docs/TROUBLESHOOTING.md` entry.
+- **Validation:** two new deterministic gates
+  (`scripts/validate-herdr-panes.py`, `scripts/validate-c-man-pages.py`)
+  - `validate-toolchain.py`/`validate-man-pages.py` regression + `bash -n`
+  - markdownlint. Runtime gates (focused base-image build; on-box pane +
+  `man` checks) pending: docker daemon was down locally; CI builds on
+  merge; on-box checks need a deployment.
+- **Repo state:** on `main` (clean); less-man-pages already merged as PR #8
+  (previous handoff entry superseded). No drift.
+- **External action pending:** push branch + open PR, then user merge →
+  image rebuild → Argo rollout. Post-deploy: confirm the nvim-in-herdr
+  error text is gone and `man pthread` renders on the box.

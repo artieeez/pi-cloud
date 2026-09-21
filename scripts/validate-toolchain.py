@@ -5,8 +5,8 @@ Toolchain Unification feature (.specs/features/toolchain-unification/).
 
 Checks (spec-anchored, TCH-01..TCH-09):
   1. base.Dockerfile has no tmux/libevent/libncurses artifacts (TCH-01)
-  2. build-base.yaml pins BASE_TAG ruby-4.0.5-6 (TCH-02)
-  3. build-push-ocir.yaml pins BASE_TAG ruby-4.0.5-6 (TCH-03)
+  2. build-base.yaml pins BASE_TAG ruby-4.0.5-7 (TCH-02)
+  3. build-push-ocir.yaml pins BASE_TAG ruby-4.0.5-7 (TCH-03)
   4. renovate.json declares the five custom managers + policy (TCH-04)
   5. herdr-sha-sync workflow + script exist with trigger/fork guard (TCH-05)
   6. app Dockerfile keeps sha256sum herdr check; script hashes + no-ops (TCH-05/06)
@@ -69,7 +69,7 @@ def main():
         if content is None:
             results.append(check(num, False, f"{path} missing"))
             continue
-        new_ok = re.search(r"BASE_TAG:\s*ruby-4\.0\.5-6", content)
+        new_ok = re.search(r"BASE_TAG:\s*ruby-4\.0\.5-7", content)
         old_gone = "ruby-4.0.5_tmux-3.7c-4" not in content
         wait_ok = (not extra_wait) or ("docker manifest inspect" in content
                                        and "seq 1 60" in content)
