@@ -26,8 +26,8 @@ A persistent, SSH-accessible dev box on the artr OKE cluster (oracle-cluster) fo
 - ~~tmux~~ — removed in the ruby-4.0.5-5 base rebuild; herdr hosts the panes
 - git, ripgrep, sqlite3, libvips, jq, Node 24
 - **less + man pages** — user-friendly pager + local docs (`man-db`/`groff-base`),
-  including the C library reference (`manpages-dev`: `man 3 printf`,
-  `man 3 pthread_create`); the Debian bookworm-slim base ships neither, so the
+  including the C library reference, system calls and all (`manpages-dev`:
+  `man 2 open`, `man 3 printf`, `man 3 pthread_create`); the Debian bookworm-slim base ships neither, so the
   base image re-enables the `dpkg` man path-exclude and restores the
   pre-installed packages' man trees (`/usr/share/doc` and locales stay excluded
   for size; the bare `man pthread` topic is POSIX-manual-only and out of scope)

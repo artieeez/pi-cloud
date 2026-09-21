@@ -44,7 +44,9 @@ Two box defects surfaced from use:
 - AC-04: WHEN `man 3 pthread_create` runs on the box THEN the page SHALL
   render.
 - AC-05: WHEN `man 3 printf` runs on the box THEN the page SHALL render.
-- AC-06: WHEN the herdr config file already declares a `[terminal]` section
+- AC-06: WHEN `man 2 open` runs on the box THEN the page SHALL render (system
+  calls ride in `manpages-dev` section 2).
+- AC-07: WHEN the herdr config file already declares a `[terminal]` section
   THEN the entrypoint SHALL NOT modify it (the config write is idempotent).
 
 ## Assumptions & Open Questions
@@ -101,4 +103,5 @@ programmers hit the gap on first `man 3 pthread_create`.
 | AC-03 | `scripts/validate-c-man-pages.py` CMP-03 (tag sync in both workflows) + `scripts/validate-toolchain.py` TCH-02/03 | workflow diff on PR |
 | AC-04 | `scripts/validate-c-man-pages.py` CMP-02 (`manpages-dev` present); runtime gate: `MANPAGER=cat man 3 pthread_create` renders (exit 0) | box → `man 3 pthread_create` renders |
 | AC-05 | `scripts/validate-c-man-pages.py` CMP-02; runtime gate: `MANPAGER=cat man 3 printf` renders (exit 0) | box → `man 3 printf` renders |
-| AC-06 | `scripts/validate-herdr-panes.py` HDP-04 (guard keeps existing `[terminal]` untouched) | second boot: config file unchanged |
+| AC-06 | `scripts/validate-c-man-pages.py` CMP-02 (same package); runtime gate: `MANPAGER=cat man 2 open` renders (exit 0) — system calls ship in `manpages-dev` section 2 | box → `man 2 open` renders |
+| AC-07 | `scripts/validate-herdr-panes.py` HDP-04 (guard keeps existing `[terminal]` untouched) | second boot: config file unchanged |

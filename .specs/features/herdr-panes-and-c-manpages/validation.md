@@ -40,6 +40,9 @@ herdr pane env). Review against full feature state at HEAD `10e48db`.
    `man-db groff-base less manpages manpages-dev` → resolve):
    - `MANPAGER=cat man 3 printf` → exit 0, rendered
    - `MANPAGER=cat man 3 pthread_create` → exit 0, rendered
+   - `MANPAGER=cat man 2 open` → exit 0, rendered (system calls, section 2;
+     same `manpages-dev` package; also spot-checked `read(2)`, `mmap(2)`,
+     `fork(2)`)
 2. **herdr config write, behavioral** (bash, 3 cases): write/append/leave-alone
    all correct; resulting TOML parses via `tomllib`; user's existing
    `[terminal]` (`default_shell = "/bin/zsh"`) untouched (md5-stable).
