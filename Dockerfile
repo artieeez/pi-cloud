@@ -21,7 +21,7 @@ FROM ${BASE_IMAGE}:${BASE_TAG}
 
 ARG PI_VERSION=0.85.1
 ARG KUBECTL_VERSION=1.36.4
-ARG HERDR_VERSION=0.9.1
+ARG HERDR_VERSION=0.9.3
 # herdr-linux-aarch64 sha256 (release assets carry no checksum sidecar; pinned here)
 ARG HERDR_SHA256=f4ccf4de745f2cb9a39a983e9ba3703dad50ec2a58dea83026ceab721bbd8d9e
 ARG GH_VERSION=2.100.0
