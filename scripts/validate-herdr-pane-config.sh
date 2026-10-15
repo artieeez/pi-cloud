@@ -116,6 +116,19 @@ run_reordered() {
   check "HPC-03 key order of a compliant config is preserved" "$([ "${before}" = "$(md5 "${f}")" ] && printf 1 || printf 0)"
 }
 
+run_single_quoted() {
+  local f="${work}/single-quoted.toml" before
+  printf "[terminal]\ndefault_shell = '/bin/bash'\nshell_mode = 'login'\n" > "${f}"
+  before="$(md5 "${f}")"
+  bash "${HELPER}" "${f}" >/dev/null 2>&1
+  check "HPC-03 single-quoted but compliant values are preserved" "$([ "${before}" = "$(md5 "${f}")" ] && printf 1 || printf 0)"
+  local g="${work}/single-quoted-wrong.toml"
+  printf "[terminal]\ndefault_shell = '/bin/bash'\nshell_mode = 'non_login'\n" > "${g}"
+  bash "${HELPER}" "${g}" >/dev/null 2>&1
+  check "HPC-02 single-quoted non-conforming value is forced to login" \
+    "$([ "$(key_count "${g}" shell_mode login)" = "1" ] && printf 1 || printf 0)"
+}
+
 # --- HPC-02: non-conforming values are forced, other keys survive ----------
 run_forced() {
   local f="${work}/forced.toml"
@@ -184,7 +197,7 @@ run_unwritable() {
 check "HPC-09 profile.d puts /opt/nvim/bin on the login-shell PATH" \
   "$(grep -q '/opt/nvim/bin' "${PROFILE}" && printf 1 || printf 0)"
 
-for fn in run_missing run_empty run_unrelated run_live_shape run_idempotent run_reordered \
+for fn in run_missing run_empty run_unrelated run_live_shape run_idempotent run_reordered run_single_quoted \
           run_forced run_duplicate run_dotted run_no_newline run_foreign_key run_crlf run_unwritable; do
   "${fn}"
 done

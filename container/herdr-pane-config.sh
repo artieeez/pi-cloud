@@ -43,7 +43,7 @@ log() { printf 'herdr-pane-config: %s\n' "$*"; }
 #                             dotted key outside every table
 #   array_terminal            an [[terminal]] array-of-tables header
 analyze() {
-  awk -v ds="${TOML_DEFAULT_SHELL}" -v sm="${TOML_SHELL_MODE}" -v q="${SQ}" '
+  awk -v ds="${REQ_DEFAULT_SHELL}" -v sm="${REQ_SHELL_MODE}" -v q="${SQ}" '
     function strip(v) { gsub(/^[[:space:]]+/, "", v); gsub(/[[:space:]]+$/, "", v); return v }
     function strip_comment(line) { sub(/[[:space:]]*#.*$/, "", line); return strip(line) }
     function header_name(line,   inner) {
@@ -58,11 +58,16 @@ analyze() {
       gsub(/"/, "", k); gsub(q, "", k)
       return k
     }
-    function value_of(line,   i, v) {
+    function value_of(line,   i, v, first, last) {
       i = index(line, "=")
       v = substr(line, i + 1)
       sub(/[[:space:]]+#.*$/, "", v)
-      return strip(v)
+      v = strip(v)
+      if (length(v) >= 2) {
+        first = substr(v, 1, 1); last = substr(v, length(v), 1)
+        if ((first == "\"" && last == "\"") || (first == q && last == q)) v = substr(v, 2, length(v) - 2)
+      }
+      return v
     }
     BEGIN { sec = 0; any_sec = 0; secs = 0; ds_n = 0; sm_n = 0; ds_ok = 0; sm_ok = 0; dotted = 0; array = 0 }
     {
@@ -108,7 +113,8 @@ field() {
 # that section); a key that is present is normalised in place only when its
 # value differs, so a compliant key keeps its exact original line.
 emit() {
-  awk -v ds="${TOML_DEFAULT_SHELL}" -v sm="${TOML_SHELL_MODE}" -v q="${SQ}" \
+  awk -v ds="${REQ_DEFAULT_SHELL}" -v sm="${REQ_SHELL_MODE}" \
+      -v ds_toml="${TOML_DEFAULT_SHELL}" -v sm_toml="${TOML_SHELL_MODE}" -v q="${SQ}" \
       -v ins_ds="$2" -v ins_sm="$3" '
     function strip(v) { gsub(/^[[:space:]]+/, "", v); gsub(/[[:space:]]+$/, "", v); return v }
     function strip_comment(line) { sub(/[[:space:]]*#.*$/, "", line); return strip(line) }
@@ -124,11 +130,16 @@ emit() {
       gsub(/"/, "", k); gsub(q, "", k)
       return k
     }
-    function value_of(line,   i, v) {
+    function value_of(line,   i, v, first, last) {
       i = index(line, "=")
       v = substr(line, i + 1)
       sub(/[[:space:]]+#.*$/, "", v)
-      return strip(v)
+      v = strip(v)
+      if (length(v) >= 2) {
+        first = substr(v, 1, 1); last = substr(v, length(v), 1)
+        if ((first == "\"" && last == "\"") || (first == q && last == q)) v = substr(v, 2, length(v) - 2)
+      }
+      return v
     }
     BEGIN { sec = 0 }
     {
@@ -138,18 +149,18 @@ emit() {
       if (header ~ /^\[.*\]$/) {
         sec = (header_name(header) == "terminal") ? 1 : 0
         print line
-        if (sec && ins_ds) print "default_shell = " ds cr
-        if (sec && ins_sm) print "shell_mode = " sm cr
+        if (sec && ins_ds) print "default_shell = " ds_toml cr
+        if (sec && ins_sm) print "shell_mode = " sm_toml cr
         next
       }
       if (sec) {
         key = key_name(line)
         if (key == "default_shell") {
-          if (value_of(line) == ds) print line; else print "default_shell = " ds cr
+          if (value_of(line) == ds) print line; else print "default_shell = " ds_toml cr
           next
         }
         if (key == "shell_mode") {
-          if (value_of(line) == sm) print line; else print "shell_mode = " sm cr
+          if (value_of(line) == sm) print line; else print "shell_mode = " sm_toml cr
           next
         }
       }
