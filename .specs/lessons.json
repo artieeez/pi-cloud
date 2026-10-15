@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "promote_threshold": 2,
+  "window_days": 45,
+  "quarantine_threshold": 2,
+  "next_id": 5,
+  "lessons": [
+    {
+      "id": "L-001",
+      "key": "spec_precision_gap::treat toml literal strings as equal to basic strings when deciding a config value is already required or the idempotence guard rewrites semantically compliant input",
+      "text": "Treat TOML literal strings as equal to basic strings when deciding a config value is already required, or the idempotence guard rewrites semantically-compliant input.",
+      "signal": "spec_precision_gap",
+      "scope": "container/herdr-config",
+      "status": "candidate",
+      "features": [
+        "herdr-pane-config-guarantee"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "container/herdr-pane-config.sh:214 (container/herdr-config)"
+      ],
+      "created": "2026-10-15T22:22:59Z",
+      "last_seen": "2026-10-15T22:22:59Z"
+    },
+    {
+      "id": "L-002",
+      "key": "spec_precision_gap::point each spec acceptance criterion at a gate assertion that exercises it a profile file grep is not a pane environment assertion",
+      "text": "Point each spec acceptance criterion at a gate assertion that exercises it; a profile-file grep is not a pane-environment assertion.",
+      "signal": "spec_precision_gap",
+      "scope": "scripts/gates",
+      "status": "candidate",
+      "features": [
+        "herdr-pane-config-guarantee"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "scripts/validate-herdr-pane-config.sh:184 (scripts/gates)"
+      ],
+      "created": "2026-10-15T22:22:59Z",
+      "last_seen": "2026-10-15T22:22:59Z"
+    },
+    {
+      "id": "L-003",
+      "key": "spec_precision_gap::state a gate s real runtime dependency floor coreutils grep diff not bash and awk only",
+      "text": "State a gate's real runtime dependency floor (coreutils/grep/diff), not 'bash and awk only'.",
+      "signal": "spec_precision_gap",
+      "scope": "scripts/gates",
+      "status": "candidate",
+      "features": [
+        "herdr-pane-config-guarantee"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "scripts/validate-herdr-pane-config.sh:60 (scripts/gates)"
+      ],
+      "created": "2026-10-15T22:22:59Z",
+      "last_seen": "2026-10-15T22:22:59Z"
+    },
+    {
+      "id": "L-004",
+      "key": "spec_precision_gap::strip a toml inline comment whether or not whitespace precedes the hash or a valid compliant config gets rewritten",
+      "text": "Strip a TOML inline comment whether or not whitespace precedes the hash, or a valid compliant config gets rewritten.",
+      "signal": "spec_precision_gap",
+      "scope": "container/herdr-config",
+      "status": "candidate",
+      "features": [
+        "herdr-pane-config-guarantee"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "container/herdr-pane-config.sh:136 (container/herdr-config)"
+      ],
+      "created": "2026-10-15T22:29:51Z",
+      "last_seen": "2026-10-15T22:29:51Z"
+    }
+  ]
+}
