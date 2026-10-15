@@ -177,21 +177,37 @@ family as the Mac) → `~/.termux/font.ttf` + `termux-reload-settings`:
 a herdr pane, `nvim` fails to open (command-not-found, blank/broken TUI, or
 TERM errors) and pane env looks different from the login shell.
 
-**Cause:** herdr's default `shell_mode` on Linux is **non-login interactive**:
-panes never source `/etc/profile.d/pi-cloud.sh`, so they inherit only the
-headless `herdr server` env (the container `ENV`: toolchain PATH yes, but no
-`PI_CLOUD`, no sealed keys, and no guaranteed `TERM`, since the server starts
-with no terminal). ssh login shells work because sshd sources `/etc/profile`.
+**Cause:** herdr's `shell_mode` default on Linux is **non-login interactive**:
+panes never source `/etc/profile.d/pi-cloud.sh`, so they lose the toolchain
+PATH (`/opt/nvim/bin`), `PI_CLOUD`, and the sealed-key exports. The first fix
+for this pinned `[terminal] shell_mode = "login"`, but only when the config had
+no `[terminal]` section at all. The PVC config already carried
+`[terminal] default_shell = "bash"`, so the pin never ran and every pane stayed
+non-login. A `herdr server` that was started outside the entrypoint (for example
+by an ssh attach) also carries a bare env: no `TERM`, no `PI_CLOUD`.
 
-**Fix (baked):** the entrypoint pins an idempotent herdr config
-(`~/.config/herdr/config.toml`, `[terminal]` `default_shell = "/bin/bash"` +
-`shell_mode = "login"`) so every new pane is a bash **login shell** that
-sources `/etc/profile.d`, and exports a `TERM` fallback (`xterm-256color`) into
-the server env (also mirrored in profile.d). Existing panes keep their old
-shell — create a new pane after the deploy to pick it up.
+**Fix (baked):** the entrypoint runs `herdr-pane-config
+~/.config/herdr/config.toml` before starting the herdr server. It guarantees
+`default_shell = "/bin/bash"` and `shell_mode = "login"` inside `[terminal]`,
+preserves every other line byte for byte, backs the previous content up to
+`config.toml.bak-pi-cloud`, and never rewrites a compliant config. A layout it
+cannot edit safely (duplicate `[terminal]` sections, root-level `terminal.*`
+dotted keys) is refused with the file untouched and a non-fatal warning, so sshd
+still starts. `TERM` fallback (`xterm-256color`) is exported server-side and
+mirrored in profile.d. Every new pane is then a bash **login shell** that
+re-derives the env from `/etc/profile.d`, whatever the server inherited.
 
-Runtime workaround until deployed: in the pane run
-`. /etc/profile.d/pi-cloud.sh` (or open a fresh pane after the rollout).
+**Remediation on a running box** (the entrypoint cannot fix a server it did not
+start):
+
+```bash
+herdr-pane-config ~/.config/herdr/config.toml   # ensures the two keys, prints what changed
+herdr server reload-config                      # the running server re-reads the config
+# then open a NEW pane: existing panes keep the shell they were created with
+```
+
+Without creating a new pane, an existing pane can run
+`. /etc/profile.d/pi-cloud.sh` for the rest of that session.
 
 ## Build/CI notes
 

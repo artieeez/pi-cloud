@@ -60,31 +60,53 @@
   repo), so boot-sync keeps every (re)provisioned pod on nvim-config
   origin/main and mirrors the Mac layout exactly.
 
+### AD-005: The box owns the herdr `[terminal]` login-shell keys
+
+- **Status:** Decided (this feature)
+- **Decision:** the entrypoint runs `herdr-pane-config` before it starts the
+  herdr server. The helper forces `[terminal].default_shell = "/bin/bash"` and
+  `[terminal].shell_mode = "login"` in `~/.config/herdr/config.toml`, preserves
+  every other line byte for byte, backs the previous content up to
+  `<config>.bak-pi-cloud`, and refuses (exit 1, file untouched, boot continues)
+  a layout it cannot edit safely: duplicate `[terminal]` sections or root-level
+  `terminal.*` dotted keys. A compliant config is never rewritten. This
+  supersedes AC-07 of `herdr-panes-and-c-manpages`, whose "skip when
+  `[terminal]` exists" rule made the pin unreachable on this box.
+- **Rationale:** herdr's `shell_mode = "auto"` spawns non-login shells on Linux,
+  which never source `/etc/profile.d/pi-cloud.sh`, so panes lose `/opt/nvim/bin`
+  on PATH, `PI_CLOUD`, and the sealed-key exports. A pane environment that
+  silently differs from an ssh login shell is a box-level defect, not a user
+  preference, so the two keys are provisioned rather than respected. Refusing an
+  ambiguous layout keeps the guarantee from corrupting a config herdr reads.
+
 ## Handoff snapshot
 
-- **Feature in flight:** `.specs/features/herdr-panes-and-c-manpages/`
-  (Small scope; spec.md only, no design/tasks). Spec gate PASS.
-  Branch `feat/herdr-panes-and-c-manpages` (from main).
-- **What it ships:** (1) herdr panes become bash **login shells**
-  (entrypoint-writes `~/.config/herdr/config.toml` `[terminal]`
-  `default_shell=/bin/bash` + `shell_mode=login`, idempotent) with a
-  `TERM` fallback exported server-side + in `profile.d` — pane env becomes
-  identical to ssh login shells, so `nvim` opens in herdr panes;
-  (2) base image gains C library man pages (`manpages-dev`: `man 3 printf`,
-  `man 3 pthread_create` — runtime-proven in a bookworm container),
-  republished as `ruby-4.0.5-7` with both build workflows synced
-  (AD-001 counter convention). The bare `man pthread` topic is the POSIX
-  manual (Debian non-free only) and is deliberately out of scope — recorded
-  in TROUBLESHOOTING #12 and the spec's assumptions. Each fix gets a
-  `docs/TROUBLESHOOTING.md` entry.
-- **Validation:** two new deterministic gates
-  (`scripts/validate-herdr-panes.py`, `scripts/validate-c-man-pages.py`)
-  - `validate-toolchain.py`/`validate-man-pages.py` regression + `bash -n`
-  - markdownlint. Runtime gates (focused base-image build; on-box pane +
-  `man` checks) pending: docker daemon was down locally; CI builds on
-  merge; on-box checks need a deployment.
-- **Repo state:** on `main` (clean); less-man-pages already merged as PR #8
-  (previous handoff entry superseded). No drift.
-- **External action pending:** push branch + open PR, then user merge →
-  image rebuild → Argo rollout. Post-deploy: confirm the nvim-in-herdr
-  error text is gone and `man pthread` renders on the box.
+- **Feature in flight:** `.specs/features/herdr-pane-config-guarantee/`
+  (Medium scope; spec.md only, no design/tasks). Spec gate PASS.
+  Branch `feat/herdr-pane-config-guarantee` (from main).
+- **What it ships:** the entrypoint calls
+  `herdr-pane-config ~/.config/herdr/config.toml` before the herdr server
+  starts. The helper (installed at `/usr/local/bin/herdr-pane-config`) forces
+  the two `[terminal]` keys, preserves every other line byte for byte, keeps a
+  `.bak-pi-cloud` copy, never rewrites a compliant config, and refuses unsafe
+  layouts with the file untouched and boot continuing (AD-005). Supersedes
+  AC-07 of `herdr-panes-and-c-manpages`.
+- **Why:** the previous pin was skipped whenever `[terminal]` already existed,
+  which is permanent PVC state on this box, so every pane stayed a non-login
+  shell without `/opt/nvim/bin` on PATH (verified live in pane `w18:p4`).
+- **Validation:** new behavioral gate `scripts/validate-herdr-pane-config.sh`
+  (bash + awk, 20 checks, so it runs on the box, which has no python3);
+  `scripts/validate-herdr-panes.py` retargeted to the guarantee call and runs
+  that gate (HDP-01..HDP-06). Both exit 0. Runtime confirmation: repair the live
+  config on the box, `herdr server reload-config`, open a new pane, run `nvim`.
+- **Repo state:** branch `feat/herdr-pane-config-guarantee`, local commits only,
+  not pushed. Observed and out of scope: `scripts/validate-lazyvim-on-box.py`
+  LVB-04 fails on `main` (it wants a baked nvim-config in
+  `docker/base.Dockerfile`, which AD-004 replaced with boot-sync).
+- **External action pending:** push branch + open PR; user merge → image rebuild
+  → Argo rollout (promote workflow).
+- **Note:** a `herdr server` started outside the entrypoint (an ssh attach can
+  do that) runs with a bare env: no `TERM`, no `PI_CLOUD`, no sealed keys.
+  Login-shell panes re-derive all of it from `/etc/profile.d`, so the pane env
+  is correct either way; restarting such a server through the entrypoint is a
+  separate, unopened topic.

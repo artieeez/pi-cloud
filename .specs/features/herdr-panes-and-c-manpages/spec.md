@@ -48,6 +48,10 @@ Two box defects surfaced from use:
   calls ride in `manpages-dev` section 2).
 - AC-07: WHEN the herdr config file already declares a `[terminal]` section
   THEN the entrypoint SHALL NOT modify it (the config write is idempotent).
+  **Superseded by `.specs/features/herdr-pane-config-guarantee/` (AC-07 made
+  the pin unreachable on any box whose config already had `[terminal]`, which
+  is the live PVC state on pi-cloud; the replacement guarantees the two
+  required keys instead of skipping the file).**
 
 ## Assumptions & Open Questions
 
@@ -105,3 +109,6 @@ programmers hit the gap on first `man 3 pthread_create`.
 | AC-05 | `scripts/validate-c-man-pages.py` CMP-02; runtime gate: `MANPAGER=cat man 3 printf` renders (exit 0) | box → `man 3 printf` renders |
 | AC-06 | `scripts/validate-c-man-pages.py` CMP-02 (same package); runtime gate: `MANPAGER=cat man 2 open` renders (exit 0) — system calls ship in `manpages-dev` section 2 | box → `man 2 open` renders |
 | AC-07 | `scripts/validate-herdr-panes.py` HDP-04 (guard keeps existing `[terminal]` untouched) | second boot: config file unchanged |
+
+AC-07 is superseded: see `.specs/features/herdr-pane-config-guarantee/`. Its
+HDP-02/HDP-04 assertions now cover that feature's guarantee.
