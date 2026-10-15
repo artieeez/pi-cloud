@@ -94,11 +94,25 @@
 - **Why:** the previous pin was skipped whenever `[terminal]` already existed,
   which is permanent PVC state on this box, so every pane stayed a non-login
   shell without `/opt/nvim/bin` on PATH (verified live in pane `w18:p4`).
-- **Validation:** new behavioral gate `scripts/validate-herdr-pane-config.sh`
-  (bash + awk, 20 checks, so it runs on the box, which has no python3);
-  `scripts/validate-herdr-panes.py` retargeted to the guarantee call and runs
-  that gate (HDP-01..HDP-06). Both exit 0. Runtime confirmation: repair the live
-  config on the box, `herdr server reload-config`, open a new pane, run `nvim`.
+- **Validation:** independent Verifier PASS
+  (`.specs/features/herdr-pane-config-guarantee/validation.md`): 15/15
+  requirements with `file:line` evidence, 5/5 injected mutants killed,
+  `validate_state.py` exit 0. Behavioral gate
+  `scripts/validate-herdr-pane-config.sh` (bash + awk + coreutils, 22 checks, so
+  it runs on the box, which ships no python3); `scripts/validate-herdr-panes.py`
+  retargeted to the guarantee call and runs that gate (HDP-01..HDP-06). The
+  Verifier's three spec-precision gaps are fixed: quote-agnostic value
+  comparison (cbaa2fd) and honest evidence citations plus dependency floor in
+  the spec (this commit).
+- **Runtime confirmed on the box (2026-10-15):** the shipped helper repaired
+  `/root/.config/herdr/config.toml` (backup `config.toml.bak-pi-cloud`),
+  `herdr server reload-config` returned `status: applied` with no diagnostics,
+  and a new tab's pane reported
+  `PATH=/opt/nvim/bin:/opt/mise-root/local/bin:/opt/mise/shims:...`,
+  `PI_CLOUD=1`, `command -v nvim` -> `/opt/nvim/bin/nvim`, `nvim --version` ->
+  `NVIM v0.12.5`. The verification tab was closed; panes `w18:p1` and `w18:p4`
+  were left as they were. Re-running the helper on the repaired config reports
+  no change (bytes and mtime stable).
 - **Repo state:** branch `feat/herdr-pane-config-guarantee`, local commits only,
   not pushed. Observed and out of scope: `scripts/validate-lazyvim-on-box.py`
   LVB-04 fails on `main` (it wants a baked nvim-config in

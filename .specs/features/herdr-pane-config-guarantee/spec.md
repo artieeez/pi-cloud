@@ -24,7 +24,8 @@ state on the PVC.
 - [ ] The guarantee never corrupts, reorders, or drops unrelated config; it
       refuses an unsafe layout instead of guessing.
 - [ ] A deterministic behavioral gate exercises the guarantee against fixture
-      configs, and runs where the artifact runs (the box has no python3).
+      configs, and runs where the artifact runs (the box ships no python3, so the
+      gate is bash + awk + coreutils).
 
 ## Out of Scope
 
@@ -34,7 +35,7 @@ state on the PVC.
 | Restarting or reloading a running herdr server from the entrypoint | The guarantee runs before the server starts at boot; a live server is the operator's call (documented remediation) |
 | Migrating existing panes to login shells | herdr resolves the shell when a pane is created; existing panes keep their env. Create a new pane |
 | `/etc/profile.d/pi-cloud.sh` content or the `TERM` fallback | Unchanged from `herdr-panes-and-c-manpages` |
-| Installing python3 on the box | Not needed: the guarantee and its gate are bash + awk |
+| Installing python3 on the box | Not needed: the guarantee and its gate run on POSIX shell tooling (bash, awk, coreutils) |
 | General TOML editing of the herdr config | Only the two required keys are owned; everything else is the user's |
 
 ## Assumptions & Open Questions
@@ -46,7 +47,7 @@ state on the PVC.
 | Unsafe config layouts (root-level `terminal.shell_mode`/`terminal.default_shell` dotted keys, duplicate `[terminal]` sections) | Refuse: leave the file untouched, exit non-zero, warn, keep booting | Both layouts would risk a duplicate TOML key if edited mechanically, and a duplicate key breaks the config herdr already reads | yes |
 | Backup of the previous config on every change | `<config>.bak-pi-cloud`, overwritten on each change | Bounded file count; mirrors herdr's own `.bak-*` convention from `config reset-keys` | yes |
 | Line endings | Match a trailing CR, rewrite only the touched lines with the file's own line ending | A CRLF config must not be read as "no `[terminal]` section", which would append a duplicate section | yes |
-| Gate language for the behavioral fixtures | Bash (`scripts/validate-herdr-pane-config.sh`) | The box image ships no python3, and this behavior must be reproducible on the box; the existing python gate keeps the repo-wiring checks and delegates behavior | yes |
+| Gate language for the behavioral fixtures | Bash (`scripts/validate-herdr-pane-config.sh`) | The box image ships no python3, and this behavior must be reproducible on the box; the existing python gate keeps the repo-wiring checks and delegates behavior. The gate's real floor is bash, awk, grep, sed, diff and coreutils, all present in the image | yes |
 | Failing guaranteed keys block boot | No: the entrypoint logs and continues | sshd must come up on a box with a broken config so the operator can repair it | yes |
 | On-box remediation of an already-running server | Operator runs the helper, then `herdr server reload-config`, then opens a new pane; recorded in TROUBLESHOOTING 13 | The entrypoint cannot retroactively fix a server it did not start | yes |
 
@@ -74,7 +75,7 @@ host, so a pane without the login-shell env defeats the box.
 7. IF the config guarantee exits non-zero THEN the entrypoint SHALL continue booting and SHALL log the failure.
 8. WHEN the config guarantee modifies the file THEN the box SHALL keep the previous content at `<config>.bak-pi-cloud`.
 9. WHEN a new herdr pane opens THEN its shell SHALL be a bash login shell that sources `/etc/profile.d/pi-cloud.sh`, so `nvim` resolves as in an ssh login shell.
-10. The config guarantee SHALL run with bash and awk only, with no python3 dependency.
+10. The config guarantee SHALL run with the box's POSIX shell tooling (bash, awk, coreutils) and SHALL NOT require python3.
 
 **Independent Test**: Run the helper against a fixture config copied from the
 live box (`[terminal]` with `default_shell = "bash"` and no `shell_mode`), then
@@ -94,7 +95,7 @@ against fixture configs, so that a regression fails a command instead of the box
 
 1. WHEN the behavioral gate runs THEN it SHALL exercise the guarantee against fixtures covering both required keys, byte-preservation of unrelated config, and both refusal paths.
 2. IF any fixture assertion fails THEN the gate SHALL exit non-zero.
-3. The behavioral gate SHALL run on the box with bash and awk only, with no python3 dependency.
+3. The behavioral gate SHALL run with the box's POSIX shell tooling (bash, awk, grep, sed, diff, coreutils) and SHALL NOT require python3.
 4. The repo gate SHALL fail if the entrypoint stops invoking the guarantee before the herdr server starts.
 
 **Independent Test**: Run `bash scripts/validate-herdr-pane-config.sh` on the box
@@ -133,21 +134,21 @@ in a non-login shell.
 
 | Requirement ID | Story | Verification (deterministic) | Runtime check (on-box, post-deploy) | Status |
 | -------------- | ----- | ---------------------------- | ----------------------------------- | ------ |
-| HPC-01 | P1: pane env | `scripts/validate-herdr-panes.py` HDP-02 (entrypoint invokes the guarantee before `setsid herdr server`) | new pane → `echo $PATH` contains `/opt/nvim/bin` | Pending |
-| HPC-02 | P1: pane env | `scripts/validate-herdr-pane-config.sh` F4/F7 (existing `[terminal]`, unrelated lines byte-identical) | diff of `~/.config/herdr/config.toml` after a boot | Pending |
-| HPC-03 | P1: pane env | `scripts/validate-herdr-pane-config.sh` F5/F6 (compliant fixtures byte-identical, md5 unchanged) | config mtime unchanged across a second boot | Pending |
-| HPC-04 | P1: pane env | `scripts/validate-herdr-pane-config.sh` F1/F2/F3 (missing, empty, unrelated-only fixtures) | first boot on a fresh PVC | Pending |
-| HPC-05 | P1: pane env | `scripts/validate-herdr-pane-config.sh` F9 (root-level dotted key refused, file unchanged) | not applicable (operator repairs by hand) | Pending |
-| HPC-06 | P1: pane env | `scripts/validate-herdr-pane-config.sh` F8 (duplicate `[terminal]` refused, file unchanged) | not applicable (operator repairs by hand) | Pending |
-| HPC-07 | P1: pane env | `scripts/validate-herdr-panes.py` HDP-02 (entrypoint call is guarded, boot continues) | boot with a refused config → sshd still accepts | Pending |
-| HPC-08 | P1: pane env | `scripts/validate-herdr-pane-config.sh` F4 (backup holds the pre-change bytes) | `~/.config/herdr/config.toml.bak-pi-cloud` present after a repair | Pending |
-| HPC-09 | P1: pane env | `bash -l -c 'command -v nvim'` vs pane `PATH` assertions in the gate (F4 login-shell provenance) | new pane → `command -v nvim` and `echo $PI_CLOUD` | Pending |
-| HPC-10 | P1: pane env | `scripts/validate-herdr-pane-config.sh` F10 (helper has no python3/node dependency) | helper runs on the box | Pending |
-| HPC-11 | P1: gate | `scripts/validate-herdr-pane-config.sh` exits 0 with all fixture assertions | run the gate on the box | Pending |
-| HPC-12 | P1: gate | gate self-check: injected fault makes the gate exit non-zero | not applicable | Pending |
-| HPC-13 | P1: gate | gate runs under bash + awk only (no python3 on the box) | `bash scripts/validate-herdr-pane-config.sh` on the box | Pending |
-| HPC-14 | P2: docs | `scripts/validate-herdr-panes.py` HDP-05 (TROUBLESHOOTING 13 names herdr, `shell_mode`, login, and the remediation command) | read section 13 | Pending |
-| HPC-15 | P1: gate | `scripts/validate-herdr-panes.py` HDP-02 (gate asserts the entrypoint call order) | not applicable | Pending |
+| HPC-01 | P1: pane env | `scripts/validate-herdr-panes.py` HDP-02 (entrypoint invokes the guarantee before `setsid herdr server`) | new pane → `echo $PATH` contains `/opt/nvim/bin` | Verified |
+| HPC-02 | P1: pane env | `scripts/validate-herdr-pane-config.sh` F4/F7 (existing `[terminal]`, unrelated lines byte-identical) | diff of `~/.config/herdr/config.toml` after a boot | Verified |
+| HPC-03 | P1: pane env | `scripts/validate-herdr-pane-config.sh` F5/F6 (compliant fixtures byte-identical, md5 unchanged) | config mtime unchanged across a second boot | Verified |
+| HPC-04 | P1: pane env | `scripts/validate-herdr-pane-config.sh` F1/F2/F3 (missing, empty, unrelated-only fixtures) | first boot on a fresh PVC | Verified |
+| HPC-05 | P1: pane env | `scripts/validate-herdr-pane-config.sh` F9 (root-level dotted key refused, file unchanged) | not applicable (operator repairs by hand) | Verified |
+| HPC-06 | P1: pane env | `scripts/validate-herdr-pane-config.sh` F8 (duplicate `[terminal]` refused, file unchanged) | not applicable (operator repairs by hand) | Verified |
+| HPC-07 | P1: pane env | `scripts/validate-herdr-panes.py` HDP-02 (entrypoint call is guarded, boot continues) | boot with a refused config → sshd still accepts | Verified |
+| HPC-08 | P1: pane env | `scripts/validate-herdr-pane-config.sh` F4 (backup holds the pre-change bytes) | `~/.config/herdr/config.toml.bak-pi-cloud` present after a repair | Verified |
+| HPC-09 | P1: pane env | `scripts/validate-herdr-pane-config.sh` gate assertions: `grep -q '/opt/nvim/bin' container/profile.d/pi-cloud.sh` plus the `shell_mode = "login"` key assertions (the two facts that make a pane a login shell with the toolchain on PATH) | new pane → `command -v nvim` and `echo $PI_CLOUD` | Verified |
+| HPC-10 | P1: pane env | `scripts/validate-herdr-pane-config.sh` assertion: the helper contains no python/node/ruby invocation; runs on the box | helper runs on the box | Verified |
+| HPC-11 | P1: gate | `scripts/validate-herdr-pane-config.sh` exits 0 with all fixture assertions | run the gate on the box | Verified |
+| HPC-12 | P1: gate | gate self-check: injected fault makes the gate exit non-zero | not applicable | Verified |
+| HPC-13 | P1: gate | gate runs under bash + awk + coreutils with the python3 TOML check optional (asserted in-gate) | `bash scripts/validate-herdr-pane-config.sh` on the box | Verified |
+| HPC-14 | P2: docs | `scripts/validate-herdr-panes.py` HDP-05 (TROUBLESHOOTING 13 names herdr, `shell_mode`, login, and the remediation command) | read section 13 | Verified |
+| HPC-15 | P1: gate | `scripts/validate-herdr-panes.py` HDP-02 (gate asserts the entrypoint call order) | not applicable | Verified |
 
 **Coverage:** 15 total, 15 mapped to gate assertions, 0 unmapped.
 
