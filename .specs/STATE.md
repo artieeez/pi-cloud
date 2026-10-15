@@ -94,16 +94,17 @@
 - **Why:** the previous pin was skipped whenever `[terminal]` already existed,
   which is permanent PVC state on this box, so every pane stayed a non-login
   shell without `/opt/nvim/bin` on PATH (verified live in pane `w18:p4`).
-- **Validation:** independent Verifier PASS
+- **Validation:** independent Verifier PASS over three passes
   (`.specs/features/herdr-pane-config-guarantee/validation.md`): 15/15
-  requirements with `file:line` evidence, 5/5 injected mutants killed,
-  `validate_state.py` exit 0. Behavioral gate
-  `scripts/validate-herdr-pane-config.sh` (bash + awk + coreutils, 22 checks, so
-  it runs on the box, which ships no python3); `scripts/validate-herdr-panes.py`
-  retargeted to the guarantee call and runs that gate (HDP-01..HDP-06). The
-  Verifier's three spec-precision gaps are fixed: quote-agnostic value
-  comparison (cbaa2fd) and honest evidence citations plus dependency floor in
-  the spec (this commit).
+  requirements with `file:line` evidence, 0 open gaps, 12 injected mutants with
+  11 killed and 1 proven behaviorally equivalent, `validate_state.py` exit 0.
+  Behavioral gate `scripts/validate-herdr-pane-config.sh` (bash + awk +
+  coreutils, 24 checks, so it runs on the box, which ships no python3);
+  `scripts/validate-herdr-panes.py` retargeted to the guarantee call and runs
+  that gate (HDP-01..HDP-06). Verifier-driven fixes: quote-agnostic value
+  comparison (cbaa2fd), comment handling up to the closing quote (dd99ef8),
+  honest evidence citations and dependency floor in the spec (1524383), report
+  and candidate lessons (0ff4da0).
 - **Runtime confirmed on the box (2026-10-15):** the shipped helper repaired
   `/root/.config/herdr/config.toml` (backup `config.toml.bak-pi-cloud`),
   `herdr server reload-config` returned `status: applied` with no diagnostics,
@@ -113,14 +114,16 @@
   `NVIM v0.12.5`. The verification tab was closed; panes `w18:p1` and `w18:p4`
   were left as they were. Re-running the helper on the repaired config reports
   no change (bytes and mtime stable).
-- **Repo state:** branch `feat/herdr-pane-config-guarantee`, local commits only,
-  not pushed. Observed and out of scope: `scripts/validate-lazyvim-on-box.py`
-  LVB-04 fails on `main` (it wants a baked nvim-config in
+- **Repo state:** branch `feat/herdr-pane-config-guarantee`, 8 local commits on
+  top of `main` (`c429f48`), PR opened from it (see the PR link in the chat
+  summary). Observed and out of scope: `scripts/validate-lazyvim-on-box.py`
+  LVB-04 fails on `main` before this branch (it wants a baked nvim-config in
   `docker/base.Dockerfile`, which AD-004 replaced with boot-sync).
-- **External action pending:** push branch + open PR; user merge → image rebuild
-  → Argo rollout (promote workflow).
 - **Note:** a `herdr server` started outside the entrypoint (an ssh attach can
   do that) runs with a bare env: no `TERM`, no `PI_CLOUD`, no sealed keys.
   Login-shell panes re-derive all of it from `/etc/profile.d`, so the pane env
   is correct either way; restarting such a server through the entrypoint is a
   separate, unopened topic.
+- **Next step after merge:** run the promote workflow with the `sha-<7>` tag of
+  the merged commit; Argo CD rolls the box. Post-deploy check: open a new herdr
+  pane and run `nvim`.
