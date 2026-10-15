@@ -92,7 +92,8 @@ COPY container/sshd_config /etc/ssh/sshd_config.d/10-pi-cloud.conf
 COPY container/profile.d/pi-cloud.sh /etc/profile.d/pi-cloud.sh
 COPY container/entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY container/sync-configs.sh /usr/local/bin/sync-configs.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/sync-configs.sh && \
+COPY container/herdr-pane-config.sh /usr/local/bin/herdr-pane-config
+RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/sync-configs.sh /usr/local/bin/herdr-pane-config && \
     ln -s /usr/local/bin/entrypoint.sh /entrypoint
 
 # Root with key-only SSH (personal dev box; never expose publicly without a

@@ -100,18 +100,18 @@ mkdir -p "${HOME_DIR}/artieeez"
 # env (PI_CLOUD, DEEPINFRA_API_KEY). Attach later with `herdr` over ssh, or
 # `herdr --remote pi-cloud` from a device that has the herdr CLI.
 # ---------------------------------------------------------------------------
-# Panes for terminal panes must match ssh login shells: herdr's default
-# shell_mode on Linux is non-login interactive, so /etc/profile.d is never
-# sourced inside a pane. Pin a minimal herdr config so every new pane is a
-# bash login shell and /etc/profile.d applies the toolchain PATH, PI_CLOUD,
-# and the sealed-key exports there too. The write is idempotent: a config
-# that already declares [terminal] is left untouched.
+# Panes must match ssh login shells: herdr's shell_mode default on Linux is
+# non-login interactive, so /etc/profile.d is never sourced inside a pane.
+# herdr-pane-config guarantees the [terminal] keys that make every new pane a
+# bash login shell sourcing /etc/profile.d (toolchain PATH, PI_CLOUD, sealed
+# exports) and leaves the rest of the user's config byte-identical. It refuses
+# an unsafe layout instead of guessing, and a failure here must never stop
+# sshd from starting.
 HDR_CONFIG="${HOME_DIR}/.config/herdr/config.toml"
-if [ ! -f "${HDR_CONFIG}" ] || ! grep -q '^\[terminal\]' "${HDR_CONFIG}"; then
-  mkdir -p "$(dirname "${HDR_CONFIG}")"
-  [ ! -f "${HDR_CONFIG}" ] || printf '\n' >> "${HDR_CONFIG}"
-  printf '[terminal]\ndefault_shell = "/bin/bash"\nshell_mode = "login"\n' >> "${HDR_CONFIG}"
-  log "herdr config pinned to login-shell panes (${HDR_CONFIG})"
+if herdr-pane-config "${HDR_CONFIG}"; then
+  log "herdr pane login-shell keys guaranteed (${HDR_CONFIG})"
+else
+  log "WARNING: herdr config guarantee failed (see above); panes may miss the login-shell env"
 fi
 
 # TERM: the headless server inherits no terminal, so its panes can see an
