@@ -129,6 +129,20 @@ run_single_quoted() {
     "$([ "$(key_count "${g}" shell_mode login)" = "1" ] && printf 1 || printf 0)"
 }
 
+run_commented_values() {
+  local f="${work}/commented.toml" before
+  printf '[terminal]\ndefault_shell = "/bin/bash"# legacy\nshell_mode = "login" # legacy\n' > "${f}"
+  before="$(md5 "${f}")"
+  bash "${HELPER}" "${f}" >/dev/null 2>&1
+  check "HPC-03 compliant values with trailing comments are preserved" \
+    "$([ "${before}" = "$(md5 "${f}")" ] && printf 1 || printf 0)"
+  local g="${work}/commented-wrong.toml"
+  printf '[terminal]\ndefault_shell = "bash" # legacy\nshell_mode = "auto"# legacy\n' > "${g}"
+  bash "${HELPER}" "${g}" >/dev/null 2>&1
+  check "HPC-02 commented non-conforming values are forced to login" \
+    "$([ "$(key_count "${g}" shell_mode login)" = "1" ] && [ "$(key_count "${g}" default_shell /bin/bash)" = "1" ] && printf 1 || printf 0)"
+}
+
 # --- HPC-02: non-conforming values are forced, other keys survive ----------
 run_forced() {
   local f="${work}/forced.toml"
@@ -198,7 +212,7 @@ check "HPC-09 profile.d puts /opt/nvim/bin on the login-shell PATH" \
   "$(grep -q '/opt/nvim/bin' "${PROFILE}" && printf 1 || printf 0)"
 
 for fn in run_missing run_empty run_unrelated run_live_shape run_idempotent run_reordered run_single_quoted \
-          run_forced run_duplicate run_dotted run_no_newline run_foreign_key run_crlf run_unwritable; do
+          run_commented_values run_forced run_duplicate run_dotted run_no_newline run_foreign_key run_crlf run_unwritable; do
   "${fn}"
 done
 

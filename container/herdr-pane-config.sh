@@ -58,16 +58,19 @@ analyze() {
       gsub(/"/, "", k); gsub(q, "", k)
       return k
     }
-    function value_of(line,   i, v, first, last) {
+    function value_of(line,   i, v, first, j, c) {
       i = index(line, "=")
-      v = substr(line, i + 1)
-      sub(/[[:space:]]+#.*$/, "", v)
-      v = strip(v)
-      if (length(v) >= 2) {
-        first = substr(v, 1, 1); last = substr(v, length(v), 1)
-        if ((first == "\"" && last == "\"") || (first == q && last == q)) v = substr(v, 2, length(v) - 2)
+      v = strip(substr(line, i + 1))
+      first = substr(v, 1, 1)
+      if (first == "\"" || first == q) {
+        for (j = 2; j <= length(v); j++) {
+          c = substr(v, j, 1)
+          if (c == first) return substr(v, 2, j - 2)
+        }
+        return v
       }
-      return v
+      sub(/[[:space:]]*#.*$/, "", v)
+      return strip(v)
     }
     BEGIN { sec = 0; any_sec = 0; secs = 0; ds_n = 0; sm_n = 0; ds_ok = 0; sm_ok = 0; dotted = 0; array = 0 }
     {
@@ -130,16 +133,19 @@ emit() {
       gsub(/"/, "", k); gsub(q, "", k)
       return k
     }
-    function value_of(line,   i, v, first, last) {
+    function value_of(line,   i, v, first, j, c) {
       i = index(line, "=")
-      v = substr(line, i + 1)
-      sub(/[[:space:]]+#.*$/, "", v)
-      v = strip(v)
-      if (length(v) >= 2) {
-        first = substr(v, 1, 1); last = substr(v, length(v), 1)
-        if ((first == "\"" && last == "\"") || (first == q && last == q)) v = substr(v, 2, length(v) - 2)
+      v = strip(substr(line, i + 1))
+      first = substr(v, 1, 1)
+      if (first == "\"" || first == q) {
+        for (j = 2; j <= length(v); j++) {
+          c = substr(v, j, 1)
+          if (c == first) return substr(v, 2, j - 2)
+        }
+        return v
       }
-      return v
+      sub(/[[:space:]]*#.*$/, "", v)
+      return strip(v)
     }
     BEGIN { sec = 0 }
     {

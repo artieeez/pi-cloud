@@ -135,18 +135,18 @@ in a non-login shell.
 | Requirement ID | Story | Verification (deterministic) | Runtime check (on-box, post-deploy) | Status |
 | -------------- | ----- | ---------------------------- | ----------------------------------- | ------ |
 | HPC-01 | P1: pane env | `scripts/validate-herdr-panes.py` HDP-02 (entrypoint invokes the guarantee before `setsid herdr server`) | new pane → `echo $PATH` contains `/opt/nvim/bin` | Verified |
-| HPC-02 | P1: pane env | `scripts/validate-herdr-pane-config.sh` F4/F7 (existing `[terminal]`, unrelated lines byte-identical) | diff of `~/.config/herdr/config.toml` after a boot | Verified |
-| HPC-03 | P1: pane env | `scripts/validate-herdr-pane-config.sh` F5/F6 (compliant fixtures byte-identical, md5 unchanged) | config mtime unchanged across a second boot | Verified |
-| HPC-04 | P1: pane env | `scripts/validate-herdr-pane-config.sh` F1/F2/F3 (missing, empty, unrelated-only fixtures) | first boot on a fresh PVC | Verified |
-| HPC-05 | P1: pane env | `scripts/validate-herdr-pane-config.sh` F9 (root-level dotted key refused, file unchanged) | not applicable (operator repairs by hand) | Verified |
-| HPC-06 | P1: pane env | `scripts/validate-herdr-pane-config.sh` F8 (duplicate `[terminal]` refused, file unchanged) | not applicable (operator repairs by hand) | Verified |
+| HPC-02 | P1: pane env | gate checks `HPC-02 pre-existing [terminal] gains shell_mode=login and default_shell=/bin/bash`, `HPC-02 unrelated sections stay byte-identical`, `HPC-02 auto/non-login values forced to login, sibling keys kept`, `HPC-02 single-quoted non-conforming value is forced to login` | diff of `~/.config/herdr/config.toml` after a boot | Verified |
+| HPC-03 | P1: pane env | gate checks `HPC-03 compliant config is not rewritten`, `HPC-03 compliant config writes no backup`, `HPC-03 key order of a compliant config is preserved`, `HPC-03 single-quoted but compliant values are preserved` (all md5-based) | config mtime unchanged across a second boot | Verified |
+| HPC-04 | P1: pane env | gate checks `HPC-04 missing config created with both keys`, `HPC-04 empty config gains [terminal] with both keys`, `HPC-04 unrelated-only config appends [terminal] and keeps its lines` | first boot on a fresh PVC | Verified |
+| HPC-05 | P1: pane env | gate check `HPC-05 root-level terminal.* dotted keys refused untouched` (non-zero exit plus `cmp` of the fixture) | not applicable (operator repairs by hand) | Verified |
+| HPC-06 | P1: pane env | gate check `HPC-06 duplicate [terminal] refused untouched` (non-zero exit plus `cmp` of the fixture) | not applicable (operator repairs by hand) | Verified |
 | HPC-07 | P1: pane env | `scripts/validate-herdr-panes.py` HDP-02 (entrypoint call is guarded, boot continues) | boot with a refused config → sshd still accepts | Verified |
-| HPC-08 | P1: pane env | `scripts/validate-herdr-pane-config.sh` F4 (backup holds the pre-change bytes) | `~/.config/herdr/config.toml.bak-pi-cloud` present after a repair | Verified |
+| HPC-08 | P1: pane env | gate check `HPC-08 previous content kept at <config>.bak-pi-cloud` (backup compared byte for byte with the pre-change fixture) | `~/.config/herdr/config.toml.bak-pi-cloud` present after a repair | Verified |
 | HPC-09 | P1: pane env | `scripts/validate-herdr-pane-config.sh` gate assertions: `grep -q '/opt/nvim/bin' container/profile.d/pi-cloud.sh` plus the `shell_mode = "login"` key assertions (the two facts that make a pane a login shell with the toolchain on PATH) | new pane → `command -v nvim` and `echo $PI_CLOUD` | Verified |
 | HPC-10 | P1: pane env | `scripts/validate-herdr-pane-config.sh` assertion: the helper contains no python/node/ruby invocation; runs on the box | helper runs on the box | Verified |
 | HPC-11 | P1: gate | `scripts/validate-herdr-pane-config.sh` exits 0 with all fixture assertions | run the gate on the box | Verified |
 | HPC-12 | P1: gate | gate self-check: injected fault makes the gate exit non-zero | not applicable | Verified |
-| HPC-13 | P1: gate | gate runs under bash + awk + coreutils with the python3 TOML check optional (asserted in-gate) | `bash scripts/validate-herdr-pane-config.sh` on the box | Verified |
+| HPC-13 | P1: gate | gate uses bash, awk, grep, sed, diff, cmp, tr, md5sum and cut, with the python3 TOML parse check optional and its guard asserted in-gate | `bash scripts/validate-herdr-pane-config.sh` on the box | Verified |
 | HPC-14 | P2: docs | `scripts/validate-herdr-panes.py` HDP-05 (TROUBLESHOOTING 13 names herdr, `shell_mode`, login, and the remediation command) | read section 13 | Verified |
 | HPC-15 | P1: gate | `scripts/validate-herdr-panes.py` HDP-02 (gate asserts the entrypoint call order) | not applicable | Verified |
 
