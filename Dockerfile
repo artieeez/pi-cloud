@@ -19,15 +19,15 @@ ARG BASE_TAG=latest
 
 FROM ${BASE_IMAGE}:${BASE_TAG}
 
-ARG PI_VERSION=0.85.1
-ARG KUBECTL_VERSION=1.36.4
+ARG PI_VERSION=1.3.0
+ARG KUBECTL_VERSION=1.36.5
 ARG HERDR_VERSION=0.9.3
 # herdr-linux-aarch64 sha256 (release assets carry no checksum sidecar; pinned here)
 ARG HERDR_SHA256=4de7aa3e25678812e92960de64f7c2aaa1bca1f0f80a3c5e559837e231e1f5c0
-ARG GH_VERSION=2.100.0
+ARG GH_VERSION=2.102.0
 # @playwright/cli (browser automation CLI for pi UAT); its chromium headless
 # shell is baked at image build — see the install-browser RUN below.
-ARG PLAYWRIGHT_CLI_VERSION=0.1.21
+ARG PLAYWRIGHT_CLI_VERSION=0.1.22
 
 # pi coding agent (pinned; --ignore-scripts per upstream docs)
 RUN npm install -g --ignore-scripts "@earendil-works/pi-coding-agent@${PI_VERSION}"
@@ -92,7 +92,8 @@ COPY container/sshd_config /etc/ssh/sshd_config.d/10-pi-cloud.conf
 COPY container/profile.d/pi-cloud.sh /etc/profile.d/pi-cloud.sh
 COPY container/entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY container/sync-configs.sh /usr/local/bin/sync-configs.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/sync-configs.sh && \
+COPY container/herdr-pane-config.sh /usr/local/bin/herdr-pane-config
+RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/sync-configs.sh /usr/local/bin/herdr-pane-config && \
     ln -s /usr/local/bin/entrypoint.sh /entrypoint
 
 # Root with key-only SSH (personal dev box; never expose publicly without a
