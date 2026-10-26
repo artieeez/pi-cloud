@@ -24,7 +24,7 @@ ARG KUBECTL_VERSION=1.36.5
 ARG HERDR_VERSION=0.9.3
 # herdr-linux-aarch64 sha256 (release assets carry no checksum sidecar; pinned here)
 ARG HERDR_SHA256=4de7aa3e25678812e92960de64f7c2aaa1bca1f0f80a3c5e559837e231e1f5c0
-ARG GH_VERSION=2.102.0
+ARG GH_VERSION=2.103.3
 # @playwright/cli (browser automation CLI for pi UAT); its chromium headless
 # shell is baked at image build — see the install-browser RUN below.
 ARG PLAYWRIGHT_CLI_VERSION=0.1.22
