@@ -19,7 +19,7 @@ ARG BASE_TAG=latest
 
 FROM ${BASE_IMAGE}:${BASE_TAG}
 
-ARG PI_VERSION=1.3.0
+ARG PI_VERSION=1.4.0
 ARG KUBECTL_VERSION=1.36.5
 ARG HERDR_VERSION=0.9.3
 # herdr-linux-aarch64 sha256 (release assets carry no checksum sidecar; pinned here)
