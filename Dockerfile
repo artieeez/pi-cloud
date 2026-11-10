@@ -27,7 +27,7 @@ ARG HERDR_SHA256=4de7aa3e25678812e92960de64f7c2aaa1bca1f0f80a3c5e559837e231e1f5c
 ARG GH_VERSION=2.102.0
 # @playwright/cli (browser automation CLI for pi UAT); its chromium headless
 # shell is baked at image build — see the install-browser RUN below.
-ARG PLAYWRIGHT_CLI_VERSION=0.1.22
+ARG PLAYWRIGHT_CLI_VERSION=0.1.24
 
 # pi coding agent (pinned; --ignore-scripts per upstream docs)
 RUN npm install -g --ignore-scripts "@earendil-works/pi-coding-agent@${PI_VERSION}"
